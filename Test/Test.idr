@@ -21,8 +21,14 @@ run db = do
     COMMAND_OK <- pgListen db "test_channel"
      | x => putErr {ctx="Listening"} x
 
+    putStrLn "Waiting for notifications..."
+
+    True <- pgWait db
+     | False => putErr {ctx="Waiting"} "Somehow failed while waiting for notifications."
+
     Just n <- pgGetNextNotification db
      | Nothing => putStrLn "No notifications"
+
     putStrLn $ "notification on channel " ++ n.channel
 
 public export

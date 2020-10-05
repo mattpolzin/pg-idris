@@ -55,3 +55,25 @@ connectionStatus i
 export
 pgStatus : Conn -> ConnectionStatus
 pgStatus (MkConn conn) = connectionStatus $ prim__dbStatus conn
+
+--
+-- Consume Input from Server
+--
+
+%foreign libpq "PQconsumeInput"
+prim__dbConsumeInput : Ptr PGconn -> PrimIO Int
+
+||| Consume any input the server has delivered
+||| since the last time we ran a command that
+||| otherwise consumed server input.
+|||
+||| It can be useful to explicitly call upon
+||| `libpq` to consume input when doing something
+||| like listening for notifications that does
+||| not otherwise require making any calls to
+||| execute anything on the server.
+|||
+||| Returns True if successfuly and False
+||| otherwise.
+export pgConsumeInput : Conn -> IO Bool
+pgConsumeInput (MkConn conn) = (map boolValue (primIO $ prim__dbConsumeInput conn))

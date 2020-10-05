@@ -55,15 +55,18 @@ notificationStruct ptr = let res = prim__dbNotifyStruct ptr in
 prim__isNullNotifyStruct : Ptr PGnotify -> Int
 
 isNullNotification : Ptr PGnotify -> Bool
-isNullNotification ptr = boolValue $ prim__isNullNotifyStruct ptr where
-  boolValue : Int -> Bool
-  boolValue 0 = False
-  boolValue _ = True
+isNullNotification ptr = boolValue $ prim__isNullNotifyStruct ptr 
 
 --
 -- Retrieve
 --
 
+||| Gets the next notification _of those sitting around locally_.
+||| Returns `Nothing` if there are no notifications.
+|||
+||| See `libpq` documentation on `PQnotifies` for details on the
+||| distinction between retrieving notifications from the server and
+||| getting the next notification that has already been retrieved.
 export
 pgGetNextNotification : Conn -> IO (Maybe Notification)
 pgGetNextNotification (MkConn conn) = do notify <- primIO $ prim__dbGetNextNotification conn
@@ -76,6 +79,7 @@ pgGetNextNotification (MkConn conn) = do notify <- primIO $ prim__dbGetNextNotif
 -- Listen
 --
 
+||| Start listening for notifications on the given channel.
 export
 pgListen : Conn -> (channel: String) -> IO ResultStatus
 pgListen conn channel = withExecResult conn ("LISTEN " ++ channel) pgResultStatus

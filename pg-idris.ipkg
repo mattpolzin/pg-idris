@@ -5,6 +5,7 @@ sourcedir = "src"
 modules = Postgres,
           Postgres.DB,
 	  Postgres.DB.Core,
+	  Postgres.DB.Wait,
 	  Postgres.Data,
 	  Postgres.Data.Conn,
 	  Postgres.Data.ConnectionStatus,
