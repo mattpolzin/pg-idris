@@ -1,0 +1,5 @@
+package pg-test
+
+modules = Test
+
+opts = "-p pg-idris"

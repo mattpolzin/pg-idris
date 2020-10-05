@@ -1,0 +1,6 @@
+*.*~
+/build/*
+/Test/build/*
+libpg-idris
+*.d
+*.o

@@ -1,0 +1,18 @@
+package pg-idris
+
+sourcedir = "src"
+
+modules = Postgres,
+          Postgres.DB,
+	  Postgres.DB.Core,
+	  Postgres.Data,
+	  Postgres.Data.Conn,
+	  Postgres.Data.ConnectionStatus,
+	  Postgres.Exec,
+          Postgres.Notification,
+	  Postgres.Result,
+	  Postgres.Utility
+
+prebuild = "make -C pg-helpers"
+postinstall = "make -C pg-helpers install"
+postclean = "make -C pg-helpers clean"
