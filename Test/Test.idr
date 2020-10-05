@@ -16,9 +16,6 @@ putErr {ctx} diag = putStrLn $ error {ctx=ctx} diag
 
 run : Conn -> IO ()
 run db = do
-    OK <- pure $ pgStatus db
-     | x => putErr {ctx="Connection"} x
-
     putStrLn "Connected"
 
     COMMAND_OK <- pgListen db "test_channel"
@@ -35,6 +32,6 @@ main = do
   url <- getLine
   putStrLn "starting up..."
 
-  withDB url run
+  withDB url run (\err => putErr {ctx="Connection"} err)
 
   putStrLn "shutting down..."

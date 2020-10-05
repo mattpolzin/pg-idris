@@ -10,20 +10,26 @@ data PGresult : Type
 %foreign libpq "PQclear"
 prim__dbClearResult : Ptr PGresult -> PrimIO ()
 
+||| The result of executing a command. See `Postgres.Exec`
+||| for more.
 export
 data Result : Type where
   MkResult : Ptr PGresult -> Result
 
+||| All of the various forms of execution supported by libpq
+||| provide types that conform to the `ResultProducer` interface.
 public export
 interface ResultProducer source a where
   exec : source -> a -> IO (Ptr PGresult)
 
+||| Execute the given result producer, do the given thing with the
+||| result, and then free the memory used for the result.
 export
-Executor : ResultProducer source a => source -> a -> (Result -> b) -> IO b
-Executor src = \cmd,f => do resPtr <- exec src cmd
-                            let out = f $ MkResult resPtr
-                            primIO $ prim__dbClearResult resPtr
-                            pure out
+withResult : ResultProducer source a => source -> a -> (Result -> b) -> IO b
+withResult src cmd f = do resPtr <- exec src cmd
+                          let out = f $ MkResult resPtr
+                          primIO $ prim__dbClearResult resPtr
+                          pure out
 
 
 

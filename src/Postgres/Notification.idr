@@ -78,5 +78,5 @@ pgGetNextNotification (MkConn conn) = do notify <- primIO $ prim__dbGetNextNotif
 
 export
 pgListen : Conn -> (channel: String) -> IO ResultStatus
-pgListen conn channel = pgSafeExec conn ("LISTEN " ++ channel) pgResultStatus
+pgListen conn channel = withExecResult conn ("LISTEN " ++ channel) pgResultStatus
 

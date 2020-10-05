@@ -1,4 +1,5 @@
 *.*~
+*.swp
 /build/*
 /Test/build/*
 libpg-idris
