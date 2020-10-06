@@ -4,6 +4,8 @@ import System.FFI
 import Postgres.Utility
 import Postgres.Data.Conn
 import Postgres.DB
+import Postgres.DB.Core
+import Postgres.DB.Wait
 import Postgres.Result
 import Postgres.Exec
 
@@ -58,6 +60,15 @@ isNullNotification : Ptr PGnotify -> Bool
 isNullNotification ptr = boolValue $ prim__isNullNotifyStruct ptr 
 
 --
+-- Listen
+--
+
+||| Start listening for notifications on the given channel.
+export
+pgListen : Conn -> (channel: String) -> IO ResultStatus
+pgListen conn channel = withExecResult conn ("LISTEN " ++ channel) pgResultStatus
+
+--
 -- Retrieve
 --
 
@@ -67,20 +78,47 @@ isNullNotification ptr = boolValue $ prim__isNullNotifyStruct ptr
 ||| See `libpq` documentation on `PQnotifies` for details on the
 ||| distinction between retrieving notifications from the server and
 ||| getting the next notification that has already been retrieved.
+|||
+||| NOTE: This function _does_ consume input to make sure no notification
+|||  sent by the server but not processed by the client yet gets
+|||  missed.
 export
-pgGetNextNotification : Conn -> IO (Maybe Notification)
-pgGetNextNotification (MkConn conn) = do notify <- primIO $ prim__dbGetNextNotification conn
-                                         if isNullNotification notify
-                                            then pure $ Nothing
-                                            else do derefNotify <- notificationStruct notify
-                                                    pure $ Just (notification derefNotify)
+pgNextNotification : Conn -> IO (Maybe Notification)
+pgNextNotification (MkConn conn) = do pgConsumeInput (MkConn conn)
+                                      notify <- primIO $ prim__dbGetNextNotification conn
+                                      if isNullNotification notify
+                                         then pure $ Nothing
+                                         else do derefNotify <- notificationStruct notify
+                                                 pure $ Just (notification derefNotify)
 
 --
--- Listen
+-- Loop Retrieval
 --
 
-||| Start listening for notifications on the given channel.
+||| First waits for activity from server
+||| then checks if there is a new notification
+||| then either returns a notification or cycles
+cycle : Conn -> IO Notification
+cycle conn = do pgWait conn
+                Nothing <- pgNextNotification conn
+                 | Just n => pure n
+                cycle conn
+
+||| Produce a potentially infinite stream of notifications.
+||| Unlike `pgNextNotificaiton`, this will wait for the server
+||| to deliver a notification.
+|||
+||| This _is_ an infinite sequence with a blocking wait for the
+||| next notification so it is of somewhat limited utility
+||| compared to checking for new notifications at a natural point
+||| in your programs existing logic loop unless your entire loop
+||| is dictated by notification arrival anyway.
 export
-pgListen : Conn -> (channel: String) -> IO ResultStatus
-pgListen conn channel = withExecResult conn ("LISTEN " ++ channel) pgResultStatus
+partial
+pgNotificationStream : Conn -> Stream (IO Notification)
+pgNotificationStream conn = next :: (pgNotificationStream conn) where
+  next : IO Notification
+  next = do Nothing <- pgNextNotification conn
+             | Just n => pure n
+            cycle conn 
 
