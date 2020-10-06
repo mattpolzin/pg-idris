@@ -3,7 +3,9 @@ module Test
 import Postgres
 import Postgres.Data
 import Postgres.DB.Core
+import Postgres.Query
 import Data.Strings
+import Language.JSON
 
 error : Show a => {default "" ctx: String} -> a -> String
 error {ctx} diag = let ctxStr = if (strLength ctx) == 0
@@ -28,17 +30,14 @@ run db = do
     COMMAND_OK <- pgListen db "test_channel"
      | x => putErr {ctx="Listening"} x
 
-    putStrLn "Entering notification loop..."
-    loop $ pgNotificationStream db
+    cmd <- getLine
+    Just json <- pgJSONResult db cmd
+     | Nothing => putErr "command failed."
+    putStrLn $ show json
 
 {-
-    True <- pgWait db
-     | False => putErr {ctx="Waiting"} "Somehow failed while waiting for notifications."
-
-    Just n <- pgGetNextNotification db
-     | Nothing => putStrLn "No notifications"
-
-    putStrLn $ "notification on channel " ++ n.channel
+    putStrLn "Entering notification loop..."
+    loop $ pgNotificationStream db
     -}
 
 public export

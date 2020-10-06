@@ -19,15 +19,15 @@ data Result : Type where
 ||| All of the various forms of execution supported by libpq
 ||| provide types that conform to the `ResultProducer` interface.
 public export
-interface ResultProducer source a where
-  exec : source -> a -> IO (Ptr PGresult)
+interface ResultProducer source input where
+  exec : source -> input -> IO (Ptr PGresult)
 
 ||| Execute the given result producer, do the given thing with the
 ||| result, and then free the memory used for the result.
 export
-withResult : ResultProducer source a => source -> a -> (Result -> b) -> IO b
+withResult : ResultProducer source a => source -> a -> (Result -> IO b) -> IO b
 withResult src cmd f = do resPtr <- exec src cmd
-                          let out = f $ MkResult resPtr
+                          out <- f $ MkResult resPtr
                           primIO $ prim__dbClearResult resPtr
                           pure out
 
@@ -89,4 +89,26 @@ export
 pgResultStatus : Result -> ResultStatus
 pgResultStatus (MkResult res) = resultStatus $ prim__dbResultStatus res
 
+export
+pgResultSuccess : Result -> Bool
+pgResultSuccess res with (pgResultStatus res)
+  pgResultSuccess res | EMPTY_QUERY = True
+  pgResultSuccess res | COMMAND_OK = True
+  pgResultSuccess res | TUPLES_OK = True
+  pgResultSuccess res | COPY_OUT = True
+  pgResultSuccess res | COPY_IN = True
+  pgResultSuccess res | COPY_BOTH = True
+  pgResultSuccess res | SINGLE_TUPLE = True
+  pgResultSuccess res | x = False
+
+--
+-- Result Value
+--
+
+%foreign libpq "PQgetvalue"
+prim__dbResultValue : Ptr PGresult -> (row: Int) -> (col: Int) -> String
+
+export
+dbResultValue : Result -> (row: Nat) -> (col: Nat) -> String
+dbResultValue (MkResult res) row col = prim__dbResultValue res (cast row) (cast col)
 

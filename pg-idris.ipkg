@@ -11,8 +11,11 @@ modules = Postgres,
 	  Postgres.Data.ConnectionStatus,
 	  Postgres.Exec,
           Postgres.Notification,
+	  Postgres.Query,
 	  Postgres.Result,
 	  Postgres.Utility
+
+opts = "-p contrib"
 
 prebuild = "make -C pg-helpers"
 postinstall = "make -C pg-helpers install"

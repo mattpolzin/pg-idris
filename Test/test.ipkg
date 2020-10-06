@@ -2,4 +2,4 @@ package pg-test
 
 modules = Test
 
-opts = "-p pg-idris"
+opts = "-p pg-idris -p contrib"

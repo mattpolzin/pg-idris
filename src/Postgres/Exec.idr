@@ -19,6 +19,5 @@ ResultProducer ExecSource String where
 ||| Execute the given command, apply the given function `f`,
 ||| and then free the memory for the result.
 export
-withExecResult : Conn -> (command : String) -> (f : Result -> b) -> IO b
+withExecResult : Conn -> (command : String) -> (f : Result -> IO b) -> IO b
 withExecResult conn command = withResult (MkExecSource conn) command
-
