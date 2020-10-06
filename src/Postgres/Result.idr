@@ -105,6 +105,21 @@ pgResultSuccess res with (pgResultStatus res)
 -- Result Value
 --
 
+%foreign libpq "PQntuples"
+prim__dbResultRowCount : Ptr PGresult -> Int
+
+%foreign libpq "PQnfields"
+prim__dbResultColCount : Ptr PGresult -> Int
+
+||| Get the size of the resultset as (row, col).
+export 
+pgResultSize : Result -> (Nat, Nat)
+pgResultSize (MkResult res) = 
+  (
+    integerToNat $ cast $ prim__dbResultRowCount res,
+    integerToNat $ cast $ prim__dbResultColCount res
+  )
+
 %foreign libpq "PQgetvalue"
 prim__dbResultValue : Ptr PGresult -> (row: Int) -> (col: Int) -> String
 
