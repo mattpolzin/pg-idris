@@ -8,11 +8,6 @@ LDFLAGS = -L$(shell pg_config --libdir) -lpq
 CPPFLAGS = -I$(shell pg_config --includedir)
 LD_LIBRARY_PATH += $(shell pg_config --includedir)
 
-DYLIB_WORKAROUND = @echo Skipping Darwin workaround
-ifeq (,$(findstring darwin,$(OSTYPE)))
-        DYLIB_WORKAROUND = cp "${INSTALLDIR}/${TARGET}" "${INSTALLDIR}/${TARGET}.dylib"
-endif
-
 SRCS = $(wildcard *.c)
 OBJS = $(SRCS:.c=.o)
 DEPS = $(OBJS:.o=.d)
@@ -42,4 +37,3 @@ cleandep: clean
 install:
 	@if ! [ -d $(INSTALLDIR) ]; then mkdir -p $(INSTALLDIR); fi
 	install $(TARGET)$(SHLIB_SUFFIX) $(wildcard *.h) $(INSTALLDIR)
-	$(DYLIB_WORKAROUND)
