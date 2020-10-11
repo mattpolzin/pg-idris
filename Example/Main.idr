@@ -1,4 +1,4 @@
-module Test 
+module Main
 
 import Postgres
 import Postgres.Data
