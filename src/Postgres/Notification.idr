@@ -3,6 +3,7 @@ module Postgres.Notification
 import System.FFI
 import Postgres.Utility
 import Postgres.Data.Conn
+import Postgres.Data.ResultStatus
 import Postgres.DB
 import Postgres.DB.Core
 import Postgres.DB.Wait

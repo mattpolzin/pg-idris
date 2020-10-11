@@ -27,3 +27,4 @@ withDB pgUrl onOpen onError = do conn <- pgOpen pgUrl
                                           x => onError x
                                  pgClose conn
                                  pure out
+

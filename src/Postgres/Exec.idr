@@ -21,3 +21,7 @@ ResultProducer ExecSource String where
 export
 withExecResult : Conn -> (command : String) -> (f : Result -> IO b) -> IO b
 withExecResult conn command = withResult (MkExecSource conn) command
+
+export
+ignore : Result -> IO ()
+ignore _ = pure ()

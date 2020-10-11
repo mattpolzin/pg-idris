@@ -1,6 +1,7 @@
 module Postgres.Result
 
 import Postgres.Utility
+import Postgres.Data.ResultStatus
 
 ||| Internal phantom type used to mark pointers to the
 ||| `libpq` struct of the same name.
@@ -32,26 +33,9 @@ withResult src cmd f = do resPtr <- exec src cmd
                           pure out
 
 
-
 --
 -- Result Status
 --
-
-||| See the `ExecStatusType` from libpq for more information.
-||| constructors below are derived from libpq options by
-||| dropping the "PGRES_" prefix
-public export 
-data ResultStatus = EMPTY_QUERY
-                  | COMMAND_OK
-                  | TUPLES_OK
-                  | COPY_OUT
-                  | COPY_IN
-                  | BAD_RESPONSE
-                  | NONFATAL_ERROR
-                  | FATAL_ERROR
-                  | COPY_BOTH
-                  | SINGLE_TUPLE
-                  | OTHER Int
 
 resultStatus : Int -> ResultStatus
 resultStatus i =
@@ -67,20 +51,6 @@ resultStatus i =
        8 => COPY_BOTH
        9 => SINGLE_TUPLE
        x => OTHER x
-
-export
-Show ResultStatus where
-  show EMPTY_QUERY    = "EMPTY_QUERY"
-  show COMMAND_OK     = "COMMAND_OK"
-  show TUPLES_OK      = "TUPLES_OK"
-  show COPY_OUT       = "COPY_OUT"
-  show COPY_IN        = "COPY_IN"
-  show BAD_RESPONSE   = "BAD_RESPONSE"
-  show NONFATAL_ERROR = "NONFATAL_ERROR"
-  show FATAL_ERROR    = "FATAL_ERROR"
-  show COPY_BOTH      = "COPY_BOTH"
-  show SINGLE_TUPLE   = "SINGLE_TUPLE"
-  show (OTHER x)      = "OTHER " ++ (show x)
 
 %foreign libpq "PQresultStatus"
 prim__dbResultStatus : Ptr PGresult -> Int
