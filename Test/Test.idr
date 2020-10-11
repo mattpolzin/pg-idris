@@ -5,6 +5,8 @@ import Postgres.Data
 import Postgres.DB.Core
 import Postgres.Query
 import Data.Strings
+import Data.Nat
+import Data.Fin
 import Language.JSON
 
 error : Show a => {default "" ctx: String} -> a -> String
@@ -23,6 +25,13 @@ loop : Stream (IO Notification) -> IO ()
 loop (n :: ns) = do putNotif n
                     loop ns
 
+execStatement : Conn -> IO ()
+execStatement db = do
+  cmd <- getLine
+  Just json <- pgJSONResult db cmd
+   | Nothing => putErr "command failed."
+  putStrLn $ show json
+
 run : Conn -> IO ()
 run db = do
     putStrLn "Connected"
@@ -30,15 +39,16 @@ run db = do
     COMMAND_OK <- pgListen db "test_channel"
      | x => putErr {ctx="Listening"} x
 
-    cmd <- getLine
-    Just json <- pgJSONResult db cmd
-     | Nothing => putErr "command failed."
-    putStrLn $ show json
-
-{-
-    putStrLn "Entering notification loop..."
-    loop $ pgNotificationStream db
-    -}
+    putStrLn "Choose One:"
+    putStrLn "1 => Arbitrary Statement"
+    putStrLn "2 => Notification Loop"
+    opt <- getLine
+    case (stringToNatOrZ opt) of
+         1 => do putStrLn "Enter SQL: "
+                 execStatement db
+         2 => do putStrLn "Entering notification loop.."
+                 loop $ pgNotificationStream db
+         _ => pure ()
 
 public export
 main : IO ()

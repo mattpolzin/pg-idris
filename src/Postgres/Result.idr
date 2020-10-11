@@ -2,6 +2,8 @@ module Postgres.Result
 
 import Postgres.Utility
 import Postgres.Data.ResultStatus
+import Data.Vect
+import Data.Fin
 
 ||| Internal phantom type used to mark pointers to the
 ||| `libpq` struct of the same name.
@@ -16,6 +18,7 @@ prim__dbClearResult : Ptr PGresult -> PrimIO ()
 export
 data Result : Type where
   MkResult : Ptr PGresult -> Result
+
 
 ||| All of the various forms of execution supported by libpq
 ||| provide types that conform to the `ResultProducer` interface.
@@ -72,7 +75,7 @@ pgResultSuccess res with (pgResultStatus res)
   pgResultSuccess res | x = False
 
 --
--- Result Value
+-- Tuple Result
 --
 
 %foreign libpq "PQntuples"
@@ -81,19 +84,65 @@ prim__dbResultRowCount : Ptr PGresult -> Int
 %foreign libpq "PQnfields"
 prim__dbResultColCount : Ptr PGresult -> Int
 
+||| Assumes the result is of type TUPLES_OK. Used
+||| internally to define TupleResult or else it
+||| would require TupleResult itself.
+resultRowCount : Result -> Nat
+resultRowCount (MkResult res) = integerToNat $ cast $ prim__dbResultRowCount res
+
+||| Assumes the result is of type TUPLES_OK. Used
+||| internally to define TupleResult or else it
+||| would require TupleResult itself.
+resultColCount : Result -> Nat
+resultColCount (MkResult res) = integerToNat $ cast $ prim__dbResultColCount res
+
+export 
+data TupleResult : (rows: Nat) -> (cols: Nat) -> Type where
+  MkTupleResult : (res : Result) -> TupleResult (resultRowCount res) (resultColCount res)
+
+export
+tupleResult : (res: Result) -> Maybe (TupleResult (resultRowCount res) (resultColCount res))
+tupleResult res = case (pgResultStatus res) of
+                       TUPLES_OK => pure $ MkTupleResult res 
+                       _ => Nothing
+
+-- export
+-- pgResultRowCount : TupleResult -> Nat
+-- pgResultRowCount res = ?h1
+-- 
+-- export
+-- pgResultColCount : Result -> Nat
+-- pgResultColCount res = ?h2 
+
+--
+-- Result Value
+--
+
 ||| Get the size of the resultset as (row, col).
 export 
-pgResultSize : Result -> (Nat, Nat)
-pgResultSize (MkResult res) = 
-  (
-    integerToNat $ cast $ prim__dbResultRowCount res,
-    integerToNat $ cast $ prim__dbResultColCount res
-  )
+pgResultSize : {1 r: Nat} -> {1 c: Nat} -> TupleResult r c -> (Nat, Nat)
+pgResultSize res = (r, c)
 
 %foreign libpq "PQgetvalue"
 prim__dbResultValue : Ptr PGresult -> (row: Int) -> (col: Int) -> String
 
 export
-dbResultValue : Result -> (row: Nat) -> (col: Nat) -> String
-dbResultValue (MkResult res) row col = prim__dbResultValue res (cast row) (cast col)
+pgResultValue : (res: TupleResult rows cols) -> (row: Fin rows) -> (col: Fin cols) -> String
+pgResultValue (MkTupleResult (MkResult res)) row col = let r = cast $ the Nat (cast row)
+                                                           c = cast $ the Nat (cast col) in 
+                                                           prim__dbResultValue res r c
 
+--
+-- Resultset
+--
+
+resultRow : {cols: Nat} -> (res : TupleResult rows cols) -> (row: Fin rows) -> (Vect cols (Lazy String))
+resultRow res row = valueAt <$> (range {len=cols}) where
+  valueAt : Fin cols -> Lazy String
+  valueAt col = pgResultValue res row col
+
+export
+pgResultset : {rows: Nat} -> {cols: Nat} -> (res : TupleResult rows cols) -> (Vect rows (Vect cols (Lazy String)))
+pgResultset res = valueAt <$> (range {len=rows}) where
+  valueAt : Fin rows -> Vect cols (Lazy String)
+  valueAt = resultRow res
