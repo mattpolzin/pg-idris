@@ -13,3 +13,8 @@ all: build
 
 build:
 	$(IDRIS) $(TARGET).idr -p pg-idris -p contrib -o pg-test
+
+.PHONY: clean
+
+clean:
+	rm -rf ./build
