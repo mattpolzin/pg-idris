@@ -1,5 +1,5 @@
-package pg-test
+package pg-example
 
-modules = Test
+modules = Main
 
 opts = "-p pg-idris -p contrib"
