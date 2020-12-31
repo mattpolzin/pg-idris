@@ -2,7 +2,6 @@ module Postgres.Exec
 
 import Postgres.Utility
 import Postgres.Data.Conn
-import Postgres.DB
 import Postgres.Result
 
 %foreign libpq "PQexec"

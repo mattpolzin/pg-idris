@@ -25,18 +25,18 @@ notificationLoop : Stream (IO Notification) -> IO ()
 notificationLoop (n :: ns) = do putNotif n
                                 notificationLoop ns
 
-execStatement : Conn -> IO ()
+execStatement : Connection -> IO ()
 execStatement conn = do
   cmd <- getLine
-  Just json <- pgJSONResult cmd conn 
+  Just json <- jsonQuery cmd conn 
    | Nothing => putErr "command failed."
   putStrLn $ show json
 
-run : Conn -> IO ()
+run : Connection -> IO ()
 run conn = do
     putStrLn "Connected"
 
-    COMMAND_OK <- pgListen conn "test_channel"
+    COMMAND_OK <- listen "test_channel" conn
      | x => putErr {ctx="Listening"} x
 
     putStrLn "Choose One:"
@@ -47,7 +47,7 @@ run conn = do
          1 => do putStrLn "Enter SQL: "
                  execStatement conn
          2 => do putStrLn "Entering notification loop.."
-                 notificationLoop $ pgNotificationStream conn
+                 notificationLoop $ notificationStream conn
          _ => pure ()
 
 public export
@@ -57,10 +57,8 @@ main = do
   url <- getLine
   putStrLn "starting up..."
 
-  runDatabase $ do initDatabase
-                   openDatabase url
-                   exec run
-                   closeDatabase
+  Right _ <- withDB url $ exec run
+    | Left err => putErr {ctx="Connection"} err
   -- withConn url run $ putErr {ctx="Connection"}
 
   putStrLn "shutting down..."
