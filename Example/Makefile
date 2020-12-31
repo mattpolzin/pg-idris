@@ -12,7 +12,7 @@ all: build
 .PHONY: build
 
 build:
-	$(IDRIS) $(TARGET).idr -p pg-idris -p contrib -o pg-test
+	$(IDRIS) $(TARGET).idr -p pg-idris -p contrib -o example
 
 .PHONY: clean
 
