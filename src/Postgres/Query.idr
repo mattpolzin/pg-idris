@@ -20,8 +20,8 @@ maybeFirstRowCol res = do row <- natToFin 0 r
                           pure $ pgResultValue res row col
 
 export
-pgJSONResult : Conn -> (command: String) -> IO (Maybe JSON)
-pgJSONResult conn command = withExecResult conn command toJson where
+pgJSONResult : (command: String) -> Conn -> IO (Maybe JSON)
+pgJSONResult command conn = withExecResult conn command toJson where
  toJson : Result -> IO (Maybe JSON)
  toJson r = pure $ [ json | json <- parse !(maybeFirstRowCol !(tupleResult r)) ]
 
