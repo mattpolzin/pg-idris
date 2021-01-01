@@ -40,6 +40,19 @@ withConn pgUrl onOpen onError
 export
 data DBState = Open | Closed
 
+export 
+data OpenResult = OK | Failed String
+
+public export
+OpenResultState : OpenResult -> DBState
+OpenResultState = \case OK         => Open
+                        (Failed _) => Closed
+
+openResult : Conn -> OpenResult
+openResult conn = case (pgStatus conn) of
+                       OK => OK
+                       x  => Failed (show x)
+
 export
 data Connection : Type where
   MkConnection : Conn -> Connection
@@ -48,94 +61,60 @@ getConn : Connection -> Conn
 getConn (MkConnection conn) = conn
 
 export
-data Database : Type -> DBState -> DBState -> Type where
-  DBOpen  : (url : String) -> Database () Closed Open
-  DBClose : Database () Open Closed
-  OpenFailed : (error : String) -> Database () Closed Closed
+data Database : (ty : Type) -> (s1 : DBState) -> (s2Fn : (ty -> DBState)) -> Type where
+  DBOpen  : (url : String) -> Database OpenResult Closed OpenResultState
+  DBClose : Database () Open (const Closed)
 
-  Exec    : (fn : Connection -> IO a) -> Database a Open Open
+  Exec    : (fn : Connection -> IO a) -> Database a Open (const Open)
 
-  Pure    : a -> Database a Closed Closed
-  Bind    : {s1, s2 : DBState} -> (db : Database a s1 s2) -> (f : a -> Database b s2 s3) -> Database b s1 s3
+  Pure    : (x : a) -> Database a (stateFn x) stateFn
+  Bind    : (db : Database a s1 s2Fn) -> (f : (x : a) -> Database b (s2Fn x) s3Fn) -> Database b s1 s3Fn
 
 %name Database db, db1, db2
 
 export
-(>>=) : {s1,s2 : DBState} -> (db : Database a s1 s2) -> (f : a -> Database b s2 s3) -> Database b s1 s3
+(>>=) : (db : Database a s1 s2Fn) -> (f : (x : a) -> Database b (s2Fn x) s3Fn) -> Database b s1 s3Fn
 (>>=) = Bind
 
 export
-initDatabase : Database () Closed Closed
-initDatabase = Pure ()
-
-data RunningDatabase : Database a s1 s2 -> Type where
-  Connected : (db : Database a s1 Open) -> RunningDatabase db
-  Disconnected : (db: Database a s1 Closed) -> RunningDatabase db
-
-runningDatabase : {s2 : DBState} -> (db : Database a s1 s2) -> RunningDatabase db
-runningDatabase {s2 = Open} db = Connected db
-runningDatabase {s2 = Closed} db = Disconnected db
-
--- idea: create ExecutionContext (monad?) to encapsulate the below storage of a connection alongside
--- the database in various states.
-
-mutual
-  runToOpen : HasIO io => Database a Closed Open -> io $ Either String (Conn, a)
-  runToOpen (DBOpen url) = do conn <- pgOpen url
-                              let result = case (pgStatus conn) of
-                                                OK => Right (conn, ())
-                                                x => Left $ show x
-                              pure result
-  runToOpen (db `Bind` f) with (runningDatabase db)
-    runToOpen (db `Bind` f) | (Connected db) = do Right (conn, res) <- runToOpen db
-                                                    | Left err => pure $ Left err
-                                                  runOpen conn (f res)
-    runToOpen (db `Bind` f) | (Disconnected db) = do Right res <- runDatabase db
-                                                       | Left err => pure $ Left err
-                                                     runToOpen (f res)
-
-  runToClose : HasIO io => (conn : Conn) -> Database a Open Closed -> io $ Either String a
-  runToClose conn DBClose = (Right) <$> pgClose conn
-  runToClose conn (db `Bind` f) with (runningDatabase db)
-    runToClose conn (db `Bind` f) | (Connected db) = do Right (conn', res) <- runOpen conn db
-                                                          | Left err => pure $ Left err
-                                                        runToClose conn' (f res)
-    runToClose conn (db `Bind` f) | (Disconnected db) = do Right res <- runToClose conn db
-                                                             | Left err => pure $ Left err
-                                                           runDatabase (f res)
-
-  runOpen : HasIO io => (conn : Conn) -> Database a Open Open -> io $ Either String (Conn, a)
-  runOpen conn (Exec fn) = liftIO [ Right (conn, res) | res <- fn $ MkConnection conn ]
-  runOpen conn (db `Bind` f) with (runningDatabase db)
-    runOpen conn (db `Bind` f) | (Connected db) = do Right (conn', res) <- runOpen conn db
-                                                       | Left err => pure $ Left err
-                                                     runOpen conn' (f res)
-    runOpen conn (db `Bind` f) | (Disconnected db) = do Right res <- runToClose conn db
-                                                          | Left err => pure $ Left err
-                                                        runToOpen (f res)
-
-  export
-  runDatabase : HasIO io => Database a Closed Closed -> io $ Either String a
-  runDatabase (Pure x) = pure $ Right x
-  runDatabase (OpenFailed err) = pure $ Left err
-  runDatabase (db `Bind` f) with (runningDatabase db)
-    runDatabase (db `Bind` f) | (Connected db) = do Right (conn, res) <- runToOpen db
-                                                      | Left err => pure $ Left err
-                                                    runToClose conn (f res)
-    runDatabase (db `Bind` f) | (Disconnected db) = do Right res <- runDatabase db
-                                                         | Left err => pure $ Left err
-                                                       runDatabase (f res)
+pure : (x : a) -> Database a (stateFn x) stateFn
+pure = Pure
 
 export
-openDatabase : (url : String) -> Database () Closed Open
+initDatabase : Database () Closed (const Closed)
+initDatabase = pure ()
+
+data ConnectionState : DBState -> Type where
+  CConnected : (conn : Conn) -> ConnectionState Open
+  CDisconnected : ConnectionState Closed
+
+runDatabase' : HasIO io => ConnectionState s1 -> Database a s1 s2Fn -> io $ (x : a ** ConnectionState (s2Fn x))
+runDatabase' CDisconnected (DBOpen url) = do conn <- pgOpen url
+                                             pure $ case openResult conn of
+                                                         OK => (OK ** CConnected conn)
+                                                         Failed err => (Failed err ** CDisconnected)
+runDatabase' (CConnected conn) DBClose = do pgClose conn
+                                            pure $ (() ** CDisconnected)
+runDatabase' (CConnected conn) (Exec fn) = liftIO $ do res <- fn (MkConnection conn)
+                                                       pure (res ** CConnected conn)
+runDatabase' cs (Pure y) = pure (y ** cs)
+runDatabase' cs (Bind db f) = do (res ** cs') <- runDatabase' cs db
+                                 runDatabase' cs' (f res)
+
+export
+evalDatabase : HasIO io => Database a Closed (const Closed) -> io a
+evalDatabase db = pure $ fst !(runDatabase' CDisconnected db)
+
+export
+openDatabase : (url : String) -> Database OpenResult Closed OpenResultState
 openDatabase url = DBOpen url
 
 export
-closeDatabase : Database () Open Closed
+closeDatabase : Database () Open (const Closed)
 closeDatabase = DBClose
 
 export
-exec : (Connection -> IO a) -> Database a Open Open
+exec : (Connection -> IO a) -> Database a Open (const Open)
 exec f = Exec f
 
 ||| Take a function that operates on a Conn
@@ -146,12 +125,16 @@ pgExec : (Conn -> IO a) -> Connection -> IO a
 pgExec f = \c => f $ getConn c
 
 export
-withDB : HasIO io => (url : String) -> Database a Open Open -> io $ Either String a
-withDB url dbOps = runDatabase $ do initDatabase
-                                    openDatabase url
-                                    out <- dbOps
-                                    closeDatabase
-                                    Pure out
+withDB : HasIO io => (url : String) -> Database a Open (const Open) -> io $ Either String a
+withDB url dbOps = evalDatabase dbCommands
+  where
+    dbCommands : Database (Either String a) Closed (const Closed)
+    dbCommands = do initDatabase
+                    OK <- openDatabase url
+                      | Failed err => pure $ Left err
+                    out <- dbOps
+                    closeDatabase
+                    pure $ Right out
 
 --
 -- Postgres Commands
@@ -194,3 +177,4 @@ export
 partial
 notificationStream : Connection -> Stream (IO Notification)
 notificationStream conn = pgNotificationStream (getConn conn)
+
