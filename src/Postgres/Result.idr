@@ -120,7 +120,7 @@ tupleResult res = case (pgResultStatus res) of
 
 ||| Get the size of the resultset as (row, col).
 export 
-pgResultSize : {1 r: Nat} -> {1 c: Nat} -> TupleResult r c -> (Nat, Nat)
+pgResultSize : {r: Nat} -> {c: Nat} -> TupleResult r c -> (Nat, Nat)
 pgResultSize res = (r, c)
 
 %foreign libpq "PQgetvalue"
