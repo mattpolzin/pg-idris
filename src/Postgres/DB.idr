@@ -4,6 +4,8 @@ import Postgres.DB.Core
 import Postgres.Data.Conn
 import Postgres.Data.ConnectionStatus
 import Postgres.Data.ResultStatus
+import Postgres.Exec
+import Postgres.Result
 import Postgres.Query
 import Postgres.Notification
 import Language.JSON
@@ -37,10 +39,10 @@ withConn pgUrl onOpen onError
 -- Database abstraction
 --
 
-export
+public export
 data DBState = Open | Closed
 
-export 
+public export 
 data OpenResult = OK | Failed String
 
 public export
@@ -67,6 +69,8 @@ data Database : (ty : Type) -> (s1 : DBState) -> (s2Fn : (ty -> DBState)) -> Typ
 
   Exec    : (fn : Connection -> IO a) -> Database a Open (const Open)
 
+  DIO      : IO () -> Database () (stateFn ()) stateFn
+
   Pure    : (x : a) -> Database a (stateFn x) stateFn
   Bind    : (db : Database a s1 s2Fn) -> (f : (x : a) -> Database b (s2Fn x) s3Fn) -> Database b s1 s3Fn
 
@@ -77,8 +81,12 @@ export
 (>>=) = Bind
 
 export
-pure : (x : a) -> Database a (stateFn x) stateFn
+pure : {auto stateFn : _ } -> (x : a) -> Database a (stateFn x) stateFn
 pure = Pure
+
+export
+liftIO : IO () -> Database () (stateFn ()) stateFn
+liftIO io = DIO io
 
 export
 initDatabase : Database () Closed (const Closed)
@@ -100,6 +108,8 @@ runDatabase' (CConnected conn) (Exec fn) = liftIO $ do res <- fn (MkConnection c
 runDatabase' cs (Pure y) = pure (y ** cs)
 runDatabase' cs (Bind db f) = do (res ** cs') <- runDatabase' cs db
                                  runDatabase' cs' (f res)
+runDatabase' cs (DIO io) = do liftIO io
+                              pure (() ** cs)
 
 export
 evalDatabase : HasIO io => Database a Closed (const Closed) -> io a
@@ -115,7 +125,7 @@ closeDatabase = DBClose
 
 export
 exec : (Connection -> IO a) -> Database a Open (const Open)
-exec f = Exec f
+exec = Exec
 
 ||| Take a function that operates on a Conn
 ||| (currency of the underlying lower level
@@ -149,6 +159,10 @@ jsonQuery = pgExec . pgJSONResult
 export
 listen : (channel : String) -> Connection -> IO ResultStatus
 listen = pgExec . pgListen
+
+export
+perform : (command : String) -> Connection -> IO ResultStatus
+perform cmd = pgExec (\c => withExecResult c cmd (pure . pgResultStatus))
 
 ||| Gets the next notification _of those sitting around locally_.
 ||| Returns `Nothing` if there are no notifications.
