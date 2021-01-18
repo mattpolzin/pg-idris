@@ -4,7 +4,6 @@ import System.FFI
 import Postgres.Utility
 import Postgres.Data.Conn
 import Postgres.Data.ResultStatus
-import Postgres.DB
 import Postgres.DB.Core
 import Postgres.DB.Wait
 import Postgres.Result
@@ -66,8 +65,8 @@ isNullNotification ptr = boolValue $ prim__isNullNotifyStruct ptr
 
 ||| Start listening for notifications on the given channel.
 export
-pgListen : Conn -> (channel: String) -> IO ResultStatus
-pgListen conn channel = withExecResult conn ("LISTEN " ++ channel) (\r => pure $ pgResultStatus r)
+pgListen : (channel: String) -> Conn -> IO ResultStatus
+pgListen channel conn = withExecResult conn ("LISTEN " ++ channel) (\r => pure $ pgResultStatus r)
 
 --
 -- Retrieve

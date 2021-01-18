@@ -21,22 +21,22 @@ putErr {ctx} diag = putStrLn $ error {ctx=ctx} diag
 putNotif : IO Notification -> IO ()
 putNotif n = putStrLn $ "Notification on channel " ++ (show (!n).channel)
 
-loop : Stream (IO Notification) -> IO ()
-loop (n :: ns) = do putNotif n
-                    loop ns
+notificationLoop : Stream (IO Notification) -> IO ()
+notificationLoop (n :: ns) = do putNotif n
+                                notificationLoop ns
 
-execStatement : Conn -> IO ()
-execStatement db = do
+execStatement : Connection -> IO ()
+execStatement conn = do
   cmd <- getLine
-  Just json <- pgJSONResult db cmd
+  Just json <- jsonQuery cmd conn 
    | Nothing => putErr "command failed."
   putStrLn $ show json
 
-run : Conn -> IO ()
-run db = do
+run : Connection -> IO ()
+run conn = do
     putStrLn "Connected"
 
-    COMMAND_OK <- pgListen db "test_channel"
+    COMMAND_OK <- listen "test_channel" conn
      | x => putErr {ctx="Listening"} x
 
     putStrLn "Choose One:"
@@ -45,9 +45,9 @@ run db = do
     opt <- getLine
     case (stringToNatOrZ opt) of
          1 => do putStrLn "Enter SQL: "
-                 execStatement db
+                 execStatement conn
          2 => do putStrLn "Entering notification loop.."
-                 loop $ pgNotificationStream db
+                 notificationLoop $ notificationStream conn
          _ => pure ()
 
 public export
@@ -57,6 +57,8 @@ main = do
   url <- getLine
   putStrLn "starting up..."
 
-  withDB url run $ putErr {ctx="Connection"}
+  Right _ <- withDB url $ exec run
+    | Left err => putErr {ctx="Connection"} err
+  -- withConn url run $ putErr {ctx="Connection"}
 
   putStrLn "shutting down..."
