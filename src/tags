@@ -1,0 +1,136 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.8	//
+(>>=)	Postgres/DB.idr	/^(>>=) : (db : Database a s1 s2Fn) -> (f : (x : a) -> Database b (s2Fn x) s3Fn) -> Database b s1 s3Fn$/;"	d
+AUTH_OK	Postgres/Data/ConnectionStatus.idr	/^                      | AUTH_OK$/;"	c
+AWAITING_RESPONSE	Postgres/Data/ConnectionStatus.idr	/^                      | AWAITING_RESPONSE$/;"	c
+BAD	Postgres/Data/ConnectionStatus.idr	/^                      | BAD$/;"	c
+BAD_RESPONSE	Postgres/Data/ResultStatus.idr	/^                  | BAD_RESPONSE$/;"	c
+Bind	Postgres/DB.idr	/^  Bind    : (db : Database a s1 s2Fn) -> (f : (x : a) -> Database b (s2Fn x) s3Fn) -> Database b s1 s3Fn$/;"	d
+CConnected	Postgres/DB.idr	/^  CConnected : (conn : Conn) -> ConnectionState Open$/;"	d
+CDisconnected	Postgres/DB.idr	/^  CDisconnected : ConnectionState Closed$/;"	d
+COMMAND_OK	Postgres/Data/ResultStatus.idr	/^                  | COMMAND_OK$/;"	c
+COPY_BOTH	Postgres/Data/ResultStatus.idr	/^                  | COPY_BOTH$/;"	c
+COPY_IN	Postgres/Data/ResultStatus.idr	/^                  | COPY_IN$/;"	c
+COPY_OUT	Postgres/Data/ResultStatus.idr	/^                  | COPY_OUT$/;"	c
+Closed	Postgres/DB.idr	/^data DBState = Open | Closed$/;"	c
+Conn	Postgres/Data/Conn.idr	/^data Conn : Type where$/;"	t
+Connection	Postgres/DB.idr	/^data Connection : Type where$/;"	t
+ConnectionState	Postgres/DB.idr	/^data ConnectionState : DBState -> Type where$/;"	t
+ConnectionStatus	Postgres/Data/ConnectionStatus.idr	/^data ConnectionStatus = OK$/;"	t
+DBClose	Postgres/DB.idr	/^  DBClose : Database () Open (const Closed)$/;"	d
+DBOpen	Postgres/DB.idr	/^  DBOpen  : (url : String) -> Database OpenResult Closed OpenResultState$/;"	d
+DBState	Postgres/DB.idr	/^data DBState = Open | Closed$/;"	t
+DIO	Postgres/DB.idr	/^  DIO      : IO () -> Database () (stateFn ()) stateFn$/;"	d
+Database	Postgres/DB.idr	/^data Database : (ty : Type) -> (s1 : DBState) -> (s2Fn : (ty -> DBState)) -> Type where$/;"	t
+EMPTY_QUERY	Postgres/Data/ResultStatus.idr	/^data ResultStatus = EMPTY_QUERY$/;"	c
+Exec	Postgres/DB.idr	/^  Exec    : (fn : Connection -> IO a) -> Database a Open (const Open)$/;"	d
+ExecSource	Postgres/Exec.idr	/^data ExecSource : Type where$/;"	t
+FATAL_ERROR	Postgres/Data/ResultStatus.idr	/^                  | FATAL_ERROR$/;"	c
+Failed	Postgres/DB.idr	/^data OpenResult = OK | Failed String$/;"	c
+MADE	Postgres/Data/ConnectionStatus.idr	/^                      | MADE$/;"	c
+MkConn	Postgres/Data/Conn.idr	/^  MkConn : Ptr PGconn -> Conn$/;"	d
+MkConnection	Postgres/DB.idr	/^  MkConnection : Conn -> Connection$/;"	d
+MkExecSource	Postgres/Exec.idr	/^  MkExecSource : Conn -> ExecSource$/;"	d
+MkResult	Postgres/Result.idr	/^  MkResult : Ptr PGresult -> Result$/;"	d
+MkTupleResult	Postgres/Result.idr	/^  MkTupleResult : (res : Result) -> TupleResult (resultRowCount res) (resultColCount res)$/;"	d
+NEEDED	Postgres/Data/ConnectionStatus.idr	/^                      | NEEDED$/;"	c
+NONFATAL_ERROR	Postgres/Data/ResultStatus.idr	/^                  | NONFATAL_ERROR$/;"	c
+OK	Postgres/DB.idr	/^data OpenResult = OK | Failed String$/;"	c
+OK	Postgres/Data/ConnectionStatus.idr	/^data ConnectionStatus = OK$/;"	c
+OTHER	Postgres/Data/ConnectionStatus.idr	/^                      | OTHER Int$/;"	c
+OTHER	Postgres/Data/ResultStatus.idr	/^                  | OTHER Int$/;"	c
+Open	Postgres/DB.idr	/^data DBState = Open | Closed$/;"	c
+OpenResult	Postgres/DB.idr	/^data OpenResult = OK | Failed String$/;"	t
+OpenResultState	Postgres/DB.idr	/^OpenResultState : OpenResult -> DBState$/;"	d
+PGconn	Postgres/Data/Conn.idr	/^data PGconn : Type$/;"	t
+PGnotify	Postgres/Notification.idr	/^PGnotify : Type$/;"	d
+PGresult	Postgres/Result.idr	/^data PGresult : Type$/;"	t
+Pure	Postgres/DB.idr	/^  Pure    : (x : a) -> Database a (stateFn x) stateFn$/;"	d
+Result	Postgres/Result.idr	/^data Result : Type where$/;"	t
+ResultStatus	Postgres/Data/ResultStatus.idr	/^data ResultStatus = EMPTY_QUERY$/;"	t
+SETENV	Postgres/Data/ConnectionStatus.idr	/^                      | SETENV$/;"	c
+SINGLE_TUPLE	Postgres/Data/ResultStatus.idr	/^                  | SINGLE_TUPLE$/;"	c
+SSL_STARTUP	Postgres/Data/ConnectionStatus.idr	/^                      | SSL_STARTUP$/;"	c
+STARTED	Postgres/Data/ConnectionStatus.idr	/^                      | STARTED$/;"	c
+TUPLES_OK	Postgres/Data/ResultStatus.idr	/^                  | TUPLES_OK$/;"	c
+TupleResult	Postgres/Result.idr	/^data TupleResult : (rows: Nat) -> (cols: Nat) -> Type where$/;"	t
+boolValue	Postgres/Utility.idr	/^boolValue : Int -> Bool$/;"	d
+channel	Postgres/Notification.idr	/^  channel : String$/;"	d
+closeDatabase	Postgres/DB.idr	/^closeDatabase : Database () Open (const Closed)$/;"	d
+connectionStatus	Postgres/DB/Core.idr	/^connectionStatus: Int -> ConnectionStatus$/;"	d
+cycle	Postgres/Notification.idr	/^cycle : Conn -> IO Notification$/;"	d
+dbCommands	Postgres/DB.idr	/^    dbCommands : Database (Either String a) Closed (const Closed)$/;"	d
+evalDatabase	Postgres/DB.idr	/^evalDatabase : HasIO io => Database a Closed (const Closed) -> io a$/;"	d
+exec	Postgres/DB.idr	/^exec : (Connection -> IO a) -> Database a Open (const Open)$/;"	d
+exec	Postgres/Result.idr	/^  exec : source -> input -> IO (Ptr PGresult)$/;"	d
+getConn	Postgres/DB.idr	/^getConn : Connection -> Conn$/;"	d
+helper	Postgres/Utility.idr	/^helper : String -> String$/;"	d
+ignore	Postgres/Exec.idr	/^ignore : Result -> IO ()$/;"	d
+initDatabase	Postgres/DB.idr	/^initDatabase : Database () Closed (const Closed)$/;"	d
+isNullNotification	Postgres/Notification.idr	/^isNullNotification : Ptr PGnotify -> Bool$/;"	d
+json	Postgres/Query.idr	/^ toJson r = pure $ [ json | json <- parse !(maybeFirstRowCol !(tupleResult r)) ]$/;"	c
+jsonQuery	Postgres/DB.idr	/^jsonQuery : (query : String) -> Connection -> IO (Maybe JSON)$/;"	d
+libpq	Postgres/Utility.idr	/^libpq : String -> String$/;"	d
+liftIO	Postgres/DB.idr	/^liftIO : IO () -> Database () (stateFn ()) stateFn$/;"	d
+listen	Postgres/DB.idr	/^listen : (channel : String) -> Connection -> IO ResultStatus$/;"	d
+maybeFirstRowCol	Postgres/Query.idr	/^maybeFirstRowCol : {r,c : Nat} -> TupleResult r c -> Maybe String$/;"	d
+next	Postgres/Notification.idr	/^  next : IO Notification$/;"	d
+nextNotification	Postgres/DB.idr	/^nextNotification : Connection -> IO (Maybe Notification)$/;"	d
+notification	Postgres/Notification.idr	/^notification : PGnotify -> Notification$/;"	d
+notificationChannel	Postgres/Notification.idr	/^notificationChannel : PGnotify -> String$/;"	d
+notificationPayload	Postgres/Notification.idr	/^notificationPayload : PGnotify -> String$/;"	d
+notificationStream	Postgres/DB.idr	/^notificationStream : Connection -> Stream (IO Notification)$/;"	d
+notificationStruct	Postgres/Notification.idr	/^notificationStruct : HasIO io => Ptr PGnotify -> io PGnotify$/;"	d
+openDatabase	Postgres/DB.idr	/^openDatabase : (url : String) -> Database OpenResult Closed OpenResultState$/;"	d
+openResult	Postgres/DB.idr	/^openResult : Conn -> OpenResult$/;"	d
+payload	Postgres/Notification.idr	/^  payload : String$/;"	d
+perform	Postgres/DB.idr	/^perform : (command : String) -> Connection -> IO ResultStatus$/;"	d
+pgClose	Postgres/DB/Core.idr	/^pgClose : HasIO io => Conn -> io ()$/;"	d
+pgExec	Postgres/DB.idr	/^pgExec : (Conn -> IO a) -> Connection -> IO a$/;"	d
+pgExec	Postgres/Exec.idr	/^     pgExec : Conn -> (command: String) -> IO (Ptr PGresult)$/;"	d
+pgJSONResult	Postgres/Query.idr	/^pgJSONResult : (command: String) -> Conn -> IO (Maybe JSON)$/;"	d
+pgListen	Postgres/Notification.idr	/^pgListen : (channel: String) -> Conn -> IO ResultStatus$/;"	d
+pgNextNotification	Postgres/Notification.idr	/^pgNextNotification : Conn -> IO (Maybe Notification)$/;"	d
+pgNotificationStream	Postgres/Notification.idr	/^pgNotificationStream : Conn -> Stream (IO Notification)$/;"	d
+pgOpen	Postgres/DB/Core.idr	/^pgOpen : HasIO io => (pgUrl: String) -> io Conn$/;"	d
+pgResultSize	Postgres/Result.idr	/^pgResultSize : {r: Nat} -> {c: Nat} -> TupleResult r c -> (Nat, Nat)$/;"	d
+pgResultStatus	Postgres/Result.idr	/^pgResultStatus : Result -> ResultStatus$/;"	d
+pgResultSuccess	Postgres/Result.idr	/^pgResultSuccess : Result -> Bool$/;"	d
+pgResultValue	Postgres/Result.idr	/^pgResultValue : (res: TupleResult rows cols) -> (row: Fin rows) -> (col: Fin cols) -> String$/;"	d
+pgResultset	Postgres/Result.idr	/^pgResultset : {rows: Nat} -> {cols: Nat} -> (res : TupleResult rows cols) -> (Vect rows (Vect cols (Lazy String)))$/;"	d
+pgStatus	Postgres/DB/Core.idr	/^pgStatus : Conn -> ConnectionStatus$/;"	d
+pgWait	Postgres/DB/Wait.idr	/^pgWait : Conn -> IO Bool$/;"	d
+prim__dbClearResult	Postgres/Result.idr	/^prim__dbClearResult : Ptr PGresult -> PrimIO ()$/;"	d
+prim__dbClose	Postgres/DB/Core.idr	/^prim__dbClose : Ptr PGconn -> PrimIO ()$/;"	d
+prim__dbConsumeInput	Postgres/DB/Core.idr	/^prim__dbConsumeInput : Ptr PGconn -> PrimIO Int$/;"	d
+prim__dbExec	Postgres/Exec.idr	/^prim__dbExec : Ptr PGconn -> (command: String) -> PrimIO (Ptr PGresult)$/;"	d
+prim__dbFreeNotifyStruct	Postgres/Notification.idr	/^prim__dbFreeNotifyStruct : Ptr PGnotify -> PrimIO ()$/;"	d
+prim__dbGetNextNotification	Postgres/Notification.idr	/^prim__dbGetNextNotification : Ptr PGconn -> PrimIO (Ptr PGnotify)$/;"	d
+prim__dbNotifyStruct	Postgres/Notification.idr	/^prim__dbNotifyStruct : Ptr PGnotify -> PGnotify$/;"	d
+prim__dbOpen	Postgres/DB/Core.idr	/^prim__dbOpen : String -> PrimIO (Ptr PGconn)$/;"	d
+prim__dbResultColCount	Postgres/Result.idr	/^prim__dbResultColCount : Ptr PGresult -> Int$/;"	d
+prim__dbResultRowCount	Postgres/Result.idr	/^prim__dbResultRowCount : Ptr PGresult -> Int$/;"	d
+prim__dbResultStatus	Postgres/Result.idr	/^prim__dbResultStatus : Ptr PGresult -> Int$/;"	d
+prim__dbResultValue	Postgres/Result.idr	/^prim__dbResultValue : Ptr PGresult -> (row: Int) -> (col: Int) -> String$/;"	d
+prim__dbStatus	Postgres/DB/Core.idr	/^prim__dbStatus : Ptr PGconn -> Int$/;"	d
+prim__dbWait	Postgres/DB/Wait.idr	/^prim__dbWait : Ptr PGconn -> PrimIO Int$/;"	d
+prim__isNullNotifyStruct	Postgres/Notification.idr	/^prim__isNullNotifyStruct : Ptr PGnotify -> Int$/;"	d
+prim__string_value	Postgres/Utility.idr	/^prim__string_value : Ptr String -> String$/;"	d
+pure	Postgres/DB.idr	/^pure : {auto stateFn : _ } -> (x : a) -> Database a (stateFn x) stateFn$/;"	d
+resultColCount	Postgres/Result.idr	/^resultColCount : Result -> Nat$/;"	d
+resultRow	Postgres/Result.idr	/^resultRow : {cols: Nat} -> (res : TupleResult rows cols) -> (row: Fin rows) -> (Vect cols (Lazy String))$/;"	d
+resultRowCount	Postgres/Result.idr	/^resultRowCount : Result -> Nat$/;"	d
+resultStatus	Postgres/Result.idr	/^resultStatus : Int -> ResultStatus$/;"	d
+runDatabase'	Postgres/DB.idr	/^runDatabase' : HasIO io => ConnectionState s1 -> Database a s1 s2Fn -> io $ (x : a ** ConnectionState (s2Fn x))$/;"	d
+toJson	Postgres/Query.idr	/^ toJson : Result -> IO (Maybe JSON)$/;"	d
+tupleResult	Postgres/Result.idr	/^tupleResult : (res: Result) -> Maybe (TupleResult (resultRowCount res) (resultColCount res))$/;"	d
+valueAt	Postgres/Result.idr	/^  valueAt : Fin cols -> Lazy String$/;"	d
+valueAt	Postgres/Result.idr	/^  valueAt : Fin rows -> Vect cols (Lazy String)$/;"	d
+withConn	Postgres/DB.idr	/^withConn : HasIO io => (pgUrl: String) -> (onOpen: Conn -> io b) -> (onError: ConnectionStatus -> io b) -> io b$/;"	d
+withDB	Postgres/DB.idr	/^withDB : HasIO io => (url : String) -> Database a Open (const Open) -> io $ Either String a$/;"	d
+withExecResult	Postgres/Exec.idr	/^withExecResult : Conn -> (command : String) -> (f : Result -> IO b) -> IO b$/;"	d
+withResult	Postgres/Result.idr	/^withResult : ResultProducer source a => source -> a -> (Result -> IO b) -> IO b$/;"	d
