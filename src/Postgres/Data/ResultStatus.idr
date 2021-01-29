@@ -1,6 +1,5 @@
 module Postgres.Data.ResultStatus
 
-
 ||| See the `ExecStatusType` from libpq for more information.
 ||| constructors below are derived from libpq options by
 ||| dropping the "PGRES_" prefix

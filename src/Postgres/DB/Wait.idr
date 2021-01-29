@@ -17,6 +17,6 @@ prim__dbWait : Ptr PGconn -> PrimIO Int
 ||| if waiting fails for some reason.
 export
 pgWait : Conn -> IO Bool
-pgWait (MkConn conn) = do True <- (map boolValue (primIO $ prim__dbWait conn)) 
+pgWait (MkConn conn) = do True <- (map intToBool (primIO $ prim__dbWait conn)) 
                            | False => pure False
                           pgConsumeInput (MkConn conn)

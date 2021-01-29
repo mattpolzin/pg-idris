@@ -76,4 +76,5 @@ prim__dbConsumeInput : Ptr PGconn -> PrimIO Int
 ||| Returns True if successfuly and False
 ||| otherwise.
 export pgConsumeInput : Conn -> IO Bool
-pgConsumeInput (MkConn conn) = (map boolValue (primIO $ prim__dbConsumeInput conn))
+pgConsumeInput (MkConn conn) = (map intToBool (primIO $ prim__dbConsumeInput conn))
+

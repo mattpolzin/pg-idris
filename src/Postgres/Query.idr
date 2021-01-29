@@ -17,8 +17,10 @@ import Data.Fin
 maybeFirstRowCol : {r,c : Nat} -> TupleResult r c -> Maybe String
 maybeFirstRowCol res = do row <- natToFin 0 r
                           col <- natToFin 0 c
-                          pure $ pgResultValue res row col
+                          pure $ pgResultStringValue res row col
 
+||| Get the result as JSON if it is 1 row and column that can
+||| be successfully parsed as JSON.
 export
 pgJSONResult : (command: String) -> Conn -> IO (Maybe JSON)
 pgJSONResult command conn = withExecResult conn command toJson where

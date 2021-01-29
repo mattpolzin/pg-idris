@@ -74,6 +74,17 @@ pgResultSuccess res with (pgResultStatus res)
   pgResultSuccess res | SINGLE_TUPLE = True
   pgResultSuccess res | x = False
 
+%foreign libpq "PQresultErrorMessage"
+prim__dbResultErrorMessage : Ptr PGresult -> String
+
+||| Get the Postgres error message for the given result or
+||| Nothing if the result was a success.
+export
+pgResultErrorMessage : Result -> Maybe String
+pgResultErrorMessage result@(MkResult res) = case pgResultSuccess result of
+                                                  False => Just $ prim__dbResultErrorMessage res
+                                                  True  => Nothing
+
 --
 -- Tuple Result
 --
@@ -83,6 +94,20 @@ prim__dbResultRowCount : Ptr PGresult -> Int
 
 %foreign libpq "PQnfields"
 prim__dbResultColCount : Ptr PGresult -> Int
+
+%foreign libpq "PQfname"
+prim__dbResultColName : Ptr PGresult -> (col : Int) -> String
+
+%foreign libpq "PQgetisnull"
+prim__dbResultColIsNull : Ptr PGresult -> (row : Int) -> (col : Int) -> Int
+
+%foreign libpq "PQfformat"
+prim__dbResultColFormatCode : Ptr PGresult -> (col : Int) -> Int
+
+||| Get the type of the column. The resulting Int is a Postgres OID.
+||| Built-in data types are defined in the file src/include/catalog/pg_type.h
+%foreign libpq "PQftype"
+prim__dbResultColType : Ptr PGresult -> (col : Int) -> Int
 
 ||| Assumes the result is of type TUPLES_OK. Used
 ||| internally to define TupleResult or else it
@@ -96,6 +121,9 @@ resultRowCount (MkResult res) = integerToNat $ cast $ prim__dbResultRowCount res
 resultColCount : Result -> Nat
 resultColCount (MkResult res) = integerToNat $ cast $ prim__dbResultColCount res
 
+resultColName : Result -> (col : Nat) -> String
+resultColName (MkResult res) col = prim__dbResultColName res (cast $ natToInteger col)
+
 export 
 data TupleResult : (rows: Nat) -> (cols: Nat) -> Type where
   MkTupleResult : (res : Result) -> TupleResult (resultRowCount res) (resultColCount res)
@@ -105,14 +133,6 @@ tupleResult : (res: Result) -> Maybe (TupleResult (resultRowCount res) (resultCo
 tupleResult res = case (pgResultStatus res) of
                        TUPLES_OK => pure $ MkTupleResult res 
                        _ => Nothing
-
--- export
--- pgResultRowCount : TupleResult -> Nat
--- pgResultRowCount res = ?h1
--- 
--- export
--- pgResultColCount : Result -> Nat
--- pgResultColCount res = ?h2 
 
 --
 -- Result Value
@@ -126,11 +146,13 @@ pgResultSize res = (r, c)
 %foreign libpq "PQgetvalue"
 prim__dbResultValue : Ptr PGresult -> (row: Int) -> (col: Int) -> String
 
+||| Get the result value at the given row and column as a String regardless
+||| of what the underlying Postgres type is.
 export
-pgResultValue : (res: TupleResult rows cols) -> (row: Fin rows) -> (col: Fin cols) -> String
-pgResultValue (MkTupleResult (MkResult res)) row col = let r = cast $ the Nat (cast row)
-                                                           c = cast $ the Nat (cast col) in 
-                                                           prim__dbResultValue res r c
+pgResultStringValue : (res: TupleResult rows cols) -> (row: Fin rows) -> (col: Fin cols) -> String
+pgResultStringValue (MkTupleResult (MkResult res)) row col = let r = cast $ the Nat (cast row)
+                                                                 c = cast $ the Nat (cast col) in 
+                                                                 prim__dbResultValue res r c
 
 --
 -- Resultset
@@ -139,10 +161,15 @@ pgResultValue (MkTupleResult (MkResult res)) row col = let r = cast $ the Nat (c
 resultRow : {cols: Nat} -> (res : TupleResult rows cols) -> (row: Fin rows) -> (Vect cols (Lazy String))
 resultRow res row = valueAt <$> (range {len=cols}) where
   valueAt : Fin cols -> Lazy String
-  valueAt col = pgResultValue res row col
+  valueAt col = pgResultStringValue res row col
 
+
+||| Get the resultset (all rows and columns) with all values as Strings
+||| regardless of the underlying Postgres value type.
 export
-pgResultset : {rows: Nat} -> {cols: Nat} -> (res : TupleResult rows cols) -> (Vect rows (Vect cols (Lazy String)))
-pgResultset res = valueAt <$> (range {len=rows}) where
+pgStringResultset : {rows: Nat} -> {cols: Nat} -> (res : TupleResult rows cols) -> (Vect rows (Vect cols (Lazy String)))
+pgStringResultset res = valueAt <$> (range {len=rows}) where
   valueAt : Fin rows -> Vect cols (Lazy String)
   valueAt = resultRow res
+
+

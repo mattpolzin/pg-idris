@@ -57,7 +57,7 @@ notificationStruct ptr = let res = prim__dbNotifyStruct ptr in
 prim__isNullNotifyStruct : Ptr PGnotify -> Int
 
 isNullNotification : Ptr PGnotify -> Bool
-isNullNotification ptr = boolValue $ prim__isNullNotifyStruct ptr 
+isNullNotification ptr = intToBool $ prim__isNullNotifyStruct ptr 
 
 --
 -- Listen
