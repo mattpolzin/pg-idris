@@ -2,6 +2,7 @@ module Postgres.Result
 
 import Postgres.Utility
 import Postgres.Data.ResultStatus
+import Postgres.Data.PostgresType
 import Data.Vect
 import Data.Fin
 
@@ -95,20 +96,6 @@ prim__dbResultRowCount : Ptr PGresult -> Int
 %foreign libpq "PQnfields"
 prim__dbResultColCount : Ptr PGresult -> Int
 
-%foreign libpq "PQfname"
-prim__dbResultColName : Ptr PGresult -> (col : Int) -> String
-
-%foreign libpq "PQgetisnull"
-prim__dbResultColIsNull : Ptr PGresult -> (row : Int) -> (col : Int) -> Int
-
-%foreign libpq "PQfformat"
-prim__dbResultColFormatCode : Ptr PGresult -> (col : Int) -> Int
-
-||| Get the type of the column. The resulting Int is a Postgres OID.
-||| Built-in data types are defined in the file src/include/catalog/pg_type.h
-%foreign libpq "PQftype"
-prim__dbResultColType : Ptr PGresult -> (col : Int) -> Int
-
 ||| Assumes the result is of type TUPLES_OK. Used
 ||| internally to define TupleResult or else it
 ||| would require TupleResult itself.
@@ -120,9 +107,6 @@ resultRowCount (MkResult res) = integerToNat $ cast $ prim__dbResultRowCount res
 ||| would require TupleResult itself.
 resultColCount : Result -> Nat
 resultColCount (MkResult res) = integerToNat $ cast $ prim__dbResultColCount res
-
-resultColName : Result -> (col : Nat) -> String
-resultColName (MkResult res) col = prim__dbResultColName res (cast $ natToInteger col)
 
 export 
 data TupleResult : (rows: Nat) -> (cols: Nat) -> Type where
@@ -137,6 +121,43 @@ tupleResult res = case (pgResultStatus res) of
 --
 -- Result Value
 --
+
+%foreign libpq "PQfname"
+prim__dbResultColName : Ptr PGresult -> (col : Int) -> String
+
+%foreign libpq "PQgetisnull"
+prim__dbResultValueIsNull : Ptr PGresult -> (row : Int) -> (col : Int) -> Int
+
+%foreign libpq "PQfformat"
+prim__dbResultColFormatCode : Ptr PGresult -> (col : Int) -> Int
+
+||| Get the type of the column. The resulting Int is a Postgres OID.
+||| Built-in data types are defined in the file src/include/catalog/pg_type.h
+%foreign libpq "PQftype"
+prim__dbResultColType : Ptr PGresult -> (col : Int) -> Int
+
+||| Get the name of the given column for this tuple result.
+resultColName : TupleResult r c -> (col : Fin c) -> String
+resultColName (MkTupleResult (MkResult res)) col = prim__dbResultColName res (cast $ finToInteger col)
+
+||| Get whether the value at the given row and column is null or not.
+resultValueIsNull : TupleResult r c -> (row : Fin r) -> (col : Fin c) -> Bool
+resultValueIsNull (MkTupleResult (MkResult res)) row col = 
+  intToBool $ prim__dbResultValueIsNull res (cast $ finToInteger row) (cast $ finToInteger col)
+
+-- TODO: implement types (see PostgresTypes.idr)
+resultColType : TupleResult r c -> (col : Fin c) -> PType
+resultColType (MkTupleResult (MkResult res)) col = 
+  POther "Unimplemented functionality"
+
+intToFormatCode : Int -> FormatCode
+intToFormatCode 0 = Text
+intToFormatCode 1 = Binary
+intToFormatCode _ = Text -- technically, other codes are reserved for future definition.
+
+resultColFormatCode : TupleResult r c -> (col : Fin c) -> FormatCode
+resultColFormatCode (MkTupleResult (MkResult res)) col = 
+  intToFormatCode $ prim__dbResultColFormatCode res (cast $ finToInteger col)
 
 ||| Get the size of the resultset as (row, col).
 export 
