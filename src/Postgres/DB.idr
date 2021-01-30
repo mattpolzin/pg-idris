@@ -127,6 +127,12 @@ export
 exec : (Connection -> IO a) -> Database a Open (const Open)
 exec = Exec
 
+||| You can execute arbitrary things against the lower-level
+||| Conn, including closing the database connection prematurely.
+export
+unsafeExec : (Conn -> IO a) -> Database a Open (const Open)
+unsafeExec f = Exec \(MkConnection conn) => f conn
+
 ||| Take a function that operates on a Conn
 ||| (currency of the underlying lower level
 ||| Postgres stuff) and turn it into a function
@@ -150,10 +156,15 @@ withDB url dbOps = evalDatabase dbCommands
 -- Postgres Commands
 --
 
+||| Query the database interpreting all columns as strings.
+export
+stringQuery : (query : String) -> Connection -> IO (Either String StringResultset)
+stringQuery = pgExec . pgStringResultsQuery
+
 ||| Query the database expecting a JSON result is returned.
 export 
 jsonQuery : (query : String) -> Connection -> IO (Maybe JSON)
-jsonQuery = pgExec . pgJSONResult
+jsonQuery = pgExec . pgJSONResultQuery
 
 ||| Start listening for notifications on the given channel.
 export

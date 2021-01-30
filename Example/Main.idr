@@ -9,6 +9,8 @@ import Data.Nat
 import Data.Fin
 import Language.JSON
 
+import Postgres.LoadTypes
+
 error : Show a => {default "" ctx: String} -> a -> String
 error {ctx} diag = let ctxStr = if (strLength ctx) == 0
                                    then ""
@@ -57,8 +59,9 @@ main = do
   url <- getLine
   putStrLn "starting up..."
 
-  Right _ <- withDB url $ exec run
+  Right _ <- withDB url $ do unsafeExec tmp
+                             exec run
     | Left err => putErr {ctx="Connection"} err
-  -- withConn url run $ putErr {ctx="Connection"}
 
   putStrLn "shutting down..."
+
