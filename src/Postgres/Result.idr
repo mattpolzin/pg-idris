@@ -66,14 +66,14 @@ pgResultStatus (MkResult res) = resultStatus $ prim__dbResultStatus res
 export
 pgResultSuccess : Result -> Bool
 pgResultSuccess res with (pgResultStatus res)
-  pgResultSuccess res | EMPTY_QUERY = True
-  pgResultSuccess res | COMMAND_OK = True
-  pgResultSuccess res | TUPLES_OK = True
-  pgResultSuccess res | COPY_OUT = True
-  pgResultSuccess res | COPY_IN = True
-  pgResultSuccess res | COPY_BOTH = True
-  pgResultSuccess res | SINGLE_TUPLE = True
-  pgResultSuccess res | x = False
+  pgResultSuccess _ | EMPTY_QUERY = True
+  pgResultSuccess _ | COMMAND_OK = True
+  pgResultSuccess _ | TUPLES_OK = True
+  pgResultSuccess _ | COPY_OUT = True
+  pgResultSuccess _ | COPY_IN = True
+  pgResultSuccess _ | COPY_BOTH = True
+  pgResultSuccess _ | SINGLE_TUPLE = True
+  pgResultSuccess _ | x = False
 
 %foreign libpq "PQresultErrorMessage"
 prim__dbResultErrorMessage : Ptr PGresult -> String
@@ -145,10 +145,13 @@ resultValueIsNull : TupleResult r c -> (row : Fin r) -> (col : Fin c) -> Bool
 resultValueIsNull (MkTupleResult (MkResult res)) row col = 
   intToBool $ prim__dbResultValueIsNull res (cast $ finToInteger row) (cast $ finToInteger col)
 
--- TODO: implement types (see PostgresTypes.idr)
-resultColType : TupleResult r c -> (col : Fin c) -> PType
+||| Get the result column type. Note that this is currently limited
+||| by the few known types that are looked up and stored in the
+||| TypeDictionary passed in.
+resultColType : {auto types : TypeDictionary} -> TupleResult r c -> (col : Fin c) -> PType
 resultColType (MkTupleResult (MkResult res)) col = 
-  POther "Unimplemented functionality"
+  let oid = prim__dbResultColType res (cast $ finToInteger col) in
+      lookup (MkOid oid) types
 
 intToFormatCode : Int -> FormatCode
 intToFormatCode 0 = Text
