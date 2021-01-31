@@ -1,13 +1,14 @@
 module Postgres.DB
 
+import public Postgres.Data.ResultStatus
+import public Postgres.Result
+import public Postgres.Query
+
 import Postgres.DB.Core
 import Postgres.Data.Conn
 import Postgres.Data.ConnectionStatus
-import Postgres.Data.ResultStatus
 import Postgres.Data.PostgresType
 import Postgres.Exec
-import Postgres.Result
-import Postgres.Query
 import Postgres.LoadTypes
 import Postgres.Notification
 import Language.JSON
@@ -85,7 +86,7 @@ export
 (>>=) = Bind
 
 export
-pure : {auto stateFn : _ } -> (x : a) -> Database a (stateFn x) stateFn
+pure : (x : a) -> Database a (stateFn x) stateFn
 pure = Pure
 
 export

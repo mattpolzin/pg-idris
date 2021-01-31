@@ -1,9 +1,10 @@
 module Postgres.Result
 
+import public Data.Vect
+
 import Postgres.Utility
 import Postgres.Data.ResultStatus
 import Postgres.Data.PostgresType
-import Data.Vect
 import Data.Fin
 
 ||| Internal phantom type used to mark pointers to the

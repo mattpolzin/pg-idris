@@ -1,10 +1,11 @@
 module Postgres.Query
 
+import public Language.JSON
+
 import Postgres.Utility
 import Postgres.Data.Conn
 import Postgres.Exec
 import Postgres.Result
-import Language.JSON
 import Data.Fin
 import Data.Vect
 

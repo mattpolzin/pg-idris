@@ -2,4 +2,4 @@ package pg-example
 
 modules = Main
 
-opts = "-p pg-idris -p contrib"
+depends = contrib, pg-idris

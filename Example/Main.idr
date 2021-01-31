@@ -1,14 +1,7 @@
 module Main
 
 import Postgres
-import Postgres.Data
-import Postgres.DB.Core
-import Postgres.Query
 import Data.Strings
-import Data.Nat
-import Data.Fin
-import Data.Vect
-import Language.JSON
 
 error : Show a => {default "" ctx: String} -> a -> String
 error {ctx} diag = let ctxStr = if (strLength ctx) == 0
@@ -67,4 +60,29 @@ main = do
     | Left err => putErr {ctx="Connection"} err
 
   putStrLn "shutting down..."
+
+
+
+--
+-- As seen in README
+--
+
+-- Just an example of opening and closing; it's easier to use
+-- `withDB`.
+openAndClose : (url : String) -> Database () Closed (const Closed)
+openAndClose url =
+  do initDatabase
+     OK <- openDatabase url
+       | Failed err => pure () -- connection error!
+     closeDatabase
+
+-- Again, an example used in the Readme
+runRoutine : HasIO io => (url : String) -> io (Either String ())
+runRoutine url =
+  withDB url $ pure()
+
+-- more example
+execCommand : Database () Open (const Open)
+execCommand = do liftIO $ putStrLn "Woo! Running a command!"
+                 exec ?postgresCommand
 
