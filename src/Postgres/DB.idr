@@ -4,9 +4,11 @@ import Postgres.DB.Core
 import Postgres.Data.Conn
 import Postgres.Data.ConnectionStatus
 import Postgres.Data.ResultStatus
+import Postgres.Data.PostgresType
 import Postgres.Exec
 import Postgres.Result
 import Postgres.Query
+import Postgres.LoadTypes
 import Postgres.Notification
 import Language.JSON
 
@@ -71,6 +73,8 @@ data Database : (ty : Type) -> (s1 : DBState) -> (s2Fn : (ty -> DBState)) -> Typ
 
   DIO      : IO () -> Database () (stateFn ()) stateFn
 
+  GetTypes : Database TypeDictionary Open (const Open)
+
   Pure    : (x : a) -> Database a (stateFn x) stateFn
   Bind    : (db : Database a s1 s2Fn) -> (f : (x : a) -> Database b (s2Fn x) s3Fn) -> Database b s1 s3Fn
 
@@ -93,18 +97,21 @@ initDatabase : Database () Closed (const Closed)
 initDatabase = pure ()
 
 data ConnectionState : DBState -> Type where
-  CConnected : (conn : Conn) -> ConnectionState Open
+  CConnected : (conn : Conn) -> (typeDict : TypeDictionary) -> ConnectionState Open
   CDisconnected : ConnectionState Closed
 
 runDatabase' : HasIO io => ConnectionState s1 -> Database a s1 s2Fn -> io $ (x : a ** ConnectionState (s2Fn x))
 runDatabase' CDisconnected (DBOpen url) = do conn <- pgOpen url
+                                             Right types <- pgLoadTypes conn
+                                               | Left err => pure (Failed err ** CDisconnected)
                                              pure $ case openResult conn of
-                                                         OK => (OK ** CConnected conn)
+                                                         OK => (OK ** CConnected conn types)
                                                          Failed err => (Failed err ** CDisconnected)
-runDatabase' (CConnected conn) DBClose = do pgClose conn
-                                            pure $ (() ** CDisconnected)
-runDatabase' (CConnected conn) (Exec fn) = liftIO $ do res <- fn (MkConnection conn)
-                                                       pure (res ** CConnected conn)
+runDatabase' (CConnected conn _) DBClose = do pgClose conn
+                                              pure $ (() ** CDisconnected)
+runDatabase' (CConnected conn types) (Exec fn) = liftIO $ do res <- fn (MkConnection conn)
+                                                             pure (res ** CConnected conn types)
+runDatabase' (CConnected conn types) GetTypes = pure $ (types ** CConnected conn types)
 runDatabase' cs (Pure y) = pure (y ** cs)
 runDatabase' cs (Bind db f) = do (res ** cs') <- runDatabase' cs db
                                  runDatabase' cs' (f res)
@@ -127,6 +134,12 @@ export
 exec : (Connection -> IO a) -> Database a Open (const Open)
 exec = Exec
 
+||| You can execute arbitrary things against the lower-level
+||| Conn, including closing the database connection prematurely.
+export
+unsafeExec : (Conn -> IO a) -> Database a Open (const Open)
+unsafeExec f = Exec \(MkConnection conn) => f conn
+
 ||| Take a function that operates on a Conn
 ||| (currency of the underlying lower level
 ||| Postgres stuff) and turn it into a function
@@ -146,14 +159,25 @@ withDB url dbOps = evalDatabase dbCommands
                     closeDatabase
                     pure $ Right out
 
+||| Dump the Postgres type dictionary for debugging purposes.
+export
+debugDumpTypes : Database () Open (const Open)
+debugDumpTypes = do types <- GetTypes
+                    liftIO $ putStrLn $ show types
+
 --
 -- Postgres Commands
 --
 
+||| Query the database interpreting all columns as strings.
+export
+stringQuery : (header : Bool) -> (query : String) -> Connection -> IO (Either String (StringResultset header))
+stringQuery header = pgExec . (pgStringResultsQuery header)
+
 ||| Query the database expecting a JSON result is returned.
 export 
 jsonQuery : (query : String) -> Connection -> IO (Maybe JSON)
-jsonQuery = pgExec . pgJSONResult
+jsonQuery = pgExec . pgJSONResultQuery
 
 ||| Start listening for notifications on the given channel.
 export

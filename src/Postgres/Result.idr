@@ -187,6 +187,10 @@ resultRow res row = valueAt <$> (range {len=cols}) where
   valueAt : Fin cols -> Lazy String
   valueAt col = pgResultStringValue res row col
 
+public export
+StringResultset : (header : Bool) -> Type
+StringResultset False = (rows ** cols ** Vect rows (Vect cols String))
+StringResultset True = (rows ** cols ** (Vect cols String, Vect rows (Vect cols String)))
 
 ||| Get the resultset (all rows and columns) with all values as Strings
 ||| regardless of the underlying Postgres value type.
@@ -196,4 +200,7 @@ pgStringResultset res = valueAt <$> (range {len=rows}) where
   valueAt : Fin rows -> Vect cols (Lazy String)
   valueAt = resultRow res
 
+export
+pgResultsetColNames : {cols : Nat} -> (res : TupleResult rows cols) -> (Vect cols String)
+pgResultsetColNames res = resultColName res <$> (range {len=cols})
 

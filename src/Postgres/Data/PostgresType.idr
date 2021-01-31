@@ -2,14 +2,12 @@ module Postgres.Data.PostgresType
 
 import Data.List
 
+%default total
+
 -- see src/include/catalog/pg_type.h
 
 -- just going to have to load types from Postgres:
 -- https://github.com/elixir-ecto/postgrex/blob/master/lib/postgrex/types.ex
-
-{-
-SELECT t.oid, t.typname from pg_type as t where t.typname in ('char', 'bool', 'text', 'varchar', 'json', 'int2', 'int4', 'int8', 'float4', 'float8', 'time', 'timestamp', 'timestamptz', 'timetz', 'numeric', 'uuid', 'jsonb', 'cstring');
-  -}
 
 ||| Postgres Oids are just integers that have special
 ||| internal semantics within Postgres.
@@ -20,6 +18,9 @@ data Oid : Type where
 Eq Oid where
   (MkOid x) == (MkOid y) = x == y
 
+Show Oid where
+  show (MkOid oid) = show oid
+
 ||| Not an exhaustive list of types, just a short list of
 ||| builtins with explicit support in this library.
 public export
@@ -27,8 +28,12 @@ data PType = PInteger
            | PDouble
            | PChar
            | PBoolean
+           | PDate
+           | PTime
            | PDatetime
            | PString
+           | PJson
+           | PUuid
            | POther String
            | PUnknown Oid
 
@@ -38,8 +43,12 @@ Show PType where
   show PDouble    = "Double"
   show PChar      = "Char"
   show PBoolean   = "Boolean"
+  show PDate      = "Date"
+  show PTime      = "Time"
   show PDatetime  = "DateTime"
   show PString    = "String"
+  show PJson      = "JSON"
+  show PUuid      = "UUID"
   show (POther x) = "Other: " ++ x
   show (PUnknown (MkOid oid)) = "Oid: " ++ (show oid)
 
@@ -81,7 +90,16 @@ export
 typeDictionary : List (Oid, PType) -> TypeDictionary
 typeDictionary xs = MkTypeDictionary (sortBy (compare `on` oidToInt . fst) xs)
 
+||| Find the Postgres Type the given Oid refers to, or
+||| admit defeat via PUnknown.
 export
 lookup : Oid -> TypeDictionary -> PType
-lookup oid dict = maybe (PUnknown oid) id (snd <$> (find ((== oid) . fst) $ dict.types))
+lookup oid = maybe (PUnknown oid) id . lookup oid . types
+
+export
+Show TypeDictionary where
+  show = concat . intersperse "\n" . map showTuple . types
+    where
+      showTuple : (Oid, PType) -> String
+      showTuple (oid, type) = (show oid) ++ ": " ++ (show type)
 

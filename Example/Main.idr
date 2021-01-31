@@ -7,6 +7,7 @@ import Postgres.Query
 import Data.Strings
 import Data.Nat
 import Data.Fin
+import Data.Vect
 import Language.JSON
 
 error : Show a => {default "" ctx: String} -> a -> String
@@ -57,8 +58,13 @@ main = do
   url <- getLine
   putStrLn "starting up..."
 
-  Right _ <- withDB url $ exec run
+  Right _ <- withDB url $ do debugDumpTypes
+                             Right (_ ** _ ** (headers, results)) <- exec $ stringQuery True "select * from pg_type limit 10"
+                               | Left err => liftIO $ putStrLn err
+                               | _ => liftIO $ putStrLn "ERROR"
+                             liftIO $ putStrLn (show headers)
+                             exec run
     | Left err => putErr {ctx="Connection"} err
-  -- withConn url run $ putErr {ctx="Connection"}
 
   putStrLn "shutting down..."
+
