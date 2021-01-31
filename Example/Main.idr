@@ -7,9 +7,8 @@ import Postgres.Query
 import Data.Strings
 import Data.Nat
 import Data.Fin
+import Data.Vect
 import Language.JSON
-
-import Postgres.LoadTypes
 
 error : Show a => {default "" ctx: String} -> a -> String
 error {ctx} diag = let ctxStr = if (strLength ctx) == 0
@@ -59,7 +58,10 @@ main = do
   url <- getLine
   putStrLn "starting up..."
 
-  Right _ <- withDB url $ do unsafeExec tmp
+  Right _ <- withDB url $ do Right (_ ** _ ** (headers, results)) <- exec $ stringQuery True "select * from pg_type limit 10"
+                               | Left err => liftIO $ putStrLn err
+                               | _ => liftIO $ putStrLn "ERROR"
+                             liftIO $ putStrLn (show headers)
                              exec run
     | Left err => putErr {ctx="Connection"} err
 

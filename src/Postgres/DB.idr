@@ -4,9 +4,11 @@ import Postgres.DB.Core
 import Postgres.Data.Conn
 import Postgres.Data.ConnectionStatus
 import Postgres.Data.ResultStatus
+import Postgres.Data.PostgresType
 import Postgres.Exec
 import Postgres.Result
 import Postgres.Query
+import Postgres.LoadTypes
 import Postgres.Notification
 import Language.JSON
 
@@ -93,18 +95,20 @@ initDatabase : Database () Closed (const Closed)
 initDatabase = pure ()
 
 data ConnectionState : DBState -> Type where
-  CConnected : (conn : Conn) -> ConnectionState Open
+  CConnected : (conn : Conn) -> (typeDict : TypeDictionary) -> ConnectionState Open
   CDisconnected : ConnectionState Closed
 
 runDatabase' : HasIO io => ConnectionState s1 -> Database a s1 s2Fn -> io $ (x : a ** ConnectionState (s2Fn x))
 runDatabase' CDisconnected (DBOpen url) = do conn <- pgOpen url
+                                             Right types <- pgLoadTypes conn
+                                               | Left err => pure (Failed err ** CDisconnected)
                                              pure $ case openResult conn of
-                                                         OK => (OK ** CConnected conn)
+                                                         OK => (OK ** CConnected conn types)
                                                          Failed err => (Failed err ** CDisconnected)
-runDatabase' (CConnected conn) DBClose = do pgClose conn
-                                            pure $ (() ** CDisconnected)
-runDatabase' (CConnected conn) (Exec fn) = liftIO $ do res <- fn (MkConnection conn)
-                                                       pure (res ** CConnected conn)
+runDatabase' (CConnected conn _) DBClose = do pgClose conn
+                                              pure $ (() ** CDisconnected)
+runDatabase' (CConnected conn types) (Exec fn) = liftIO $ do res <- fn (MkConnection conn)
+                                                             pure (res ** CConnected conn types)
 runDatabase' cs (Pure y) = pure (y ** cs)
 runDatabase' cs (Bind db f) = do (res ** cs') <- runDatabase' cs db
                                  runDatabase' cs' (f res)
@@ -158,8 +162,8 @@ withDB url dbOps = evalDatabase dbCommands
 
 ||| Query the database interpreting all columns as strings.
 export
-stringQuery : (query : String) -> Connection -> IO (Either String StringResultset)
-stringQuery = pgExec . pgStringResultsQuery
+stringQuery : (header : Bool) -> (query : String) -> Connection -> IO (Either String (StringResultset header))
+stringQuery header = pgExec . (pgStringResultsQuery header)
 
 ||| Query the database expecting a JSON result is returned.
 export 

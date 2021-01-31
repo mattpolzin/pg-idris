@@ -114,19 +114,21 @@ parseType type = case isElem True typeSearch of
                               , jsonTypeStrings
                               , uuidTypeStrings]
 
-typeResult : Vect 2 (Lazy String) -> Either String (Oid, PType)
+typeResult : Vect 2 String -> Either String (Oid, PType)
 typeResult [oid, type] = [(o, parseType type) | o <- parseOid oid]
 
+||| Load Postgres types into a type dictionary. This is needed so that future queries
+||| can identify the types of columns in responses.
 export
-tmp : Conn -> IO ()
-tmp conn =
-  do Right (r ** 2 ** resultset) <- pgStringResultsQuery typeQuery conn 
-       | Right (_ ** c ** _) => putStrLn $ "ERROR: expected 2 columns but got " ++ (show c)
-       | Left err            => putStrLn $ "ERROR: " ++ err
+pgLoadTypes : HasIO io => Conn -> io (Either String TypeDictionary)
+pgLoadTypes conn =
+  do Right (r ** 2 ** resultset) <- liftIO $ pgStringResultsQuery False typeQuery conn 
+       | Right (_ ** c ** _) => pure $ Left $ "ERROR: expected 2 columns but got " ++ (show c)
+       | Left err            => pure $ Left $ "ERROR: " ++ err
+     -- could change following to successfully parse a subset of types even when failing on one of them.
      Right types <- pure $ traverse typeResult resultset
-       | Left err => putStrLn $ "ERROR: " ++ err
-     let dict = typeDictionary $ toList types
-     putStrLn $ show dict
+       | Left err => pure $ Left $ "ERROR: " ++ err
+     pure $ Right $ typeDictionary $ toList types
 
 --
 -- Tests

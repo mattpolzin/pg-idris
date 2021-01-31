@@ -21,14 +21,22 @@ maybeFirstRowCol res = do row <- natToFin 0 r
 --
 
 export
-pgStringResultsQuery : (query : String) -> Conn -> IO (Either String StringResultset)
-pgStringResultsQuery query conn = withExecResult conn query stringResults where
-  stringResults : Result -> IO (Either String StringResultset)
+pgStringResultsQuery : (header : Bool) -> (query : String) -> Conn -> IO (Either String (StringResultset header))
+pgStringResultsQuery header query conn = withExecResult conn query stringResults where
+  headerNames : {cols : Nat} -> TupleResult rows cols -> Vect cols String
+  headerNames t = pgResultsetColNames t
+
+  rows : {rows, cols : Nat} -> TupleResult rows cols -> Vect rows (Vect cols String)
+  rows t = (map force) <$> pgStringResultset t
+
+  stringResults : Result -> IO (Either String (StringResultset header))
   stringResults r = do Nothing <- pure $ pgResultErrorMessage r
                          | Just err => pure $ Left err
                        Just tuples <- pure $ tupleResult r
                          | Nothing  => pure $ Left "query did not result in expected response."
-                       pure $ Right $ (_ ** _ ** pgStringResultset tuples)
+                       pure $ Right $ if header
+                                      then (_ ** _ ** (headerNames tuples, rows tuples))
+                                      else (_ ** _ ** rows tuples)
 
 --
 -- JSON Results
