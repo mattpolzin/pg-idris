@@ -11,7 +11,7 @@ This project is going to see tons of breaking changes as I experiment with appro
 Currently supports:
 - Connecting to database.
 - Arbitrary string commands with the result status returned.
-- Arbitrary string queryies with response parsed as JSON.
+- Arbitrary string queries with response parsed as JSON.
 - Arbitrary string queries with result columns all interpreted as Strings.
 - Listen for notifications on a particular channel.
 - Request next unprocessed notification.
