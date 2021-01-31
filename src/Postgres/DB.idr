@@ -73,6 +73,8 @@ data Database : (ty : Type) -> (s1 : DBState) -> (s2Fn : (ty -> DBState)) -> Typ
 
   DIO      : IO () -> Database () (stateFn ()) stateFn
 
+  GetTypes : Database TypeDictionary Open (const Open)
+
   Pure    : (x : a) -> Database a (stateFn x) stateFn
   Bind    : (db : Database a s1 s2Fn) -> (f : (x : a) -> Database b (s2Fn x) s3Fn) -> Database b s1 s3Fn
 
@@ -109,6 +111,7 @@ runDatabase' (CConnected conn _) DBClose = do pgClose conn
                                               pure $ (() ** CDisconnected)
 runDatabase' (CConnected conn types) (Exec fn) = liftIO $ do res <- fn (MkConnection conn)
                                                              pure (res ** CConnected conn types)
+runDatabase' (CConnected conn types) GetTypes = pure $ (types ** CConnected conn types)
 runDatabase' cs (Pure y) = pure (y ** cs)
 runDatabase' cs (Bind db f) = do (res ** cs') <- runDatabase' cs db
                                  runDatabase' cs' (f res)
@@ -155,6 +158,12 @@ withDB url dbOps = evalDatabase dbCommands
                     out <- dbOps
                     closeDatabase
                     pure $ Right out
+
+||| Dump the Postgres type dictionary for debugging purposes.
+export
+debugDumpTypes : Database () Open (const Open)
+debugDumpTypes = do types <- GetTypes
+                    liftIO $ putStrLn $ show types
 
 --
 -- Postgres Commands
