@@ -53,9 +53,9 @@ main = do
 
   Right _ <- withDB url $ do debugDumpTypes
                              Right (_ ** _ ** (headers, results)) <- exec $ stringQuery True "select * from pg_type limit 10"
-                               | Left err => liftIO $ putStrLn err
-                               | _ => liftIO $ putStrLn "ERROR"
-                             liftIO $ putStrLn (show headers)
+                               | Left err => liftIO' $ putStrLn err
+                               | _ => liftIO' $ putStrLn "ERROR"
+                             liftIO' $ putStrLn (show headers)
                              exec run
     | Left err => putErr {ctx="Connection"} err
 
@@ -79,10 +79,10 @@ openAndClose url =
 -- Again, an example used in the Readme
 runRoutine : HasIO io => (url : String) -> io (Either String ())
 runRoutine url =
-  withDB url $ pure()
+  withDB url $ pure ()
 
 -- more example
 execCommand : Database () Open (const Open)
-execCommand = do liftIO $ putStrLn "Woo! Running a command!"
-                 exec ?postgresCommand
+execCommand = do liftIO' $ putStrLn "Woo! Running a command!"
+                 exec $ (\c => pure ())
 

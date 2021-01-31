@@ -72,7 +72,7 @@ data Database : (ty : Type) -> (s1 : DBState) -> (s2Fn : (ty -> DBState)) -> Typ
 
   Exec    : (fn : Connection -> IO a) -> Database a Open (const Open)
 
-  DIO      : IO () -> Database () (stateFn ()) stateFn
+  DIO      : IO a -> Database a s1 (const s1)
 
   GetTypes : Database TypeDictionary Open (const Open)
 
@@ -90,8 +90,8 @@ pure : (x : a) -> Database a (stateFn x) stateFn
 pure = Pure
 
 export
-liftIO : IO () -> Database () (stateFn ()) stateFn
-liftIO io = DIO io
+liftIO' : IO a -> Database a s1 (const s1)
+liftIO' = DIO
 
 export
 initDatabase : Database () Closed (const Closed)
@@ -116,8 +116,8 @@ runDatabase' (CConnected conn types) GetTypes = pure $ (types ** CConnected conn
 runDatabase' cs (Pure y) = pure (y ** cs)
 runDatabase' cs (Bind db f) = do (res ** cs') <- runDatabase' cs db
                                  runDatabase' cs' (f res)
-runDatabase' cs (DIO io) = do liftIO io
-                              pure (() ** cs)
+runDatabase' cs (DIO io) = do v <- liftIO io
+                              pure (v ** cs)
 
 export
 evalDatabase : HasIO io => Database a Closed (const Closed) -> io a
@@ -164,7 +164,8 @@ withDB url dbOps = evalDatabase dbCommands
 export
 debugDumpTypes : Database () Open (const Open)
 debugDumpTypes = do types <- GetTypes
-                    liftIO $ putStrLn $ show types
+                    liftIO' $ putStrLn $ show types
+                    pure ()
 
 --
 -- Postgres Commands

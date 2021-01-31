@@ -27,10 +27,10 @@ You also need `libpq` (the Postgres C client implementation) installed.
 You can take a look at the `Main.idr` and `example.ipkg` in the Example folder for an example of using the library. 
 
 ### Install the library
-Run the `make install` to build and install the library (including a workaround I found I needed on OS X that copies the library output to a `.dylib`).
+Run `make install` to build and install the library (including a workaround I found I needed on OS X that copies the library output to a `.dylib`).
 
 ### Include the package
-When running `idris2`, pass the package in with the `-p pg-idris` and `-p contrib` command line arguments.
+When running `idris2`, pass the `-p pg-idris` and `-p contrib` command line arguments.
 
 If you have a package manifest, add `pg-idris` and `contrib` to the list of `depends`:
 ```
@@ -73,7 +73,7 @@ runRoutine url =
 For now, there's not much you'll want to do inside your routine other than prepare and execute a command:
 ```idris
 execCommand : Database () Open (const Open)
-execCommand = do liftIO $ putStrLn "Woo! Running a command!"
+execCommand = do liftIO' $ putStrLn "Woo! Running a command!"
                  exec ?postgresCommand
 ```
 
