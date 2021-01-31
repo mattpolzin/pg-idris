@@ -124,7 +124,7 @@ evalDatabase db = pure $ fst !(runDatabase' CDisconnected db)
 
 export
 openDatabase : (url : String) -> Database OpenResult Closed OpenResultState
-openDatabase url = DBOpen url
+openDatabase = DBOpen
 
 export
 closeDatabase : Database () Open (const Closed)
@@ -145,7 +145,7 @@ unsafeExec f = Exec \(MkConnection conn) => f conn
 ||| Postgres stuff) and turn it into a function
 ||| that operates on a Connection.
 pgExec : (Conn -> IO a) -> Connection -> IO a
-pgExec f = \c => f $ getConn c
+pgExec f = f . getConn 
 
 export
 withDB : HasIO io => (url : String) -> Database a Open (const Open) -> io $ Either String a
