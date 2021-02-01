@@ -216,5 +216,5 @@ nextNotification = pgExec pgNextNotification
 export
 partial
 notificationStream : Connection -> Stream (IO Notification)
-notificationStream conn = pgNotificationStream (getConn conn)
+notificationStream = pgNotificationStream . getConn
 
