@@ -186,6 +186,10 @@ export
 listen : (channel : String) -> Connection -> IO ResultStatus
 listen = pgExec . pgListen
 
+||| Perform the given command and instead of parsing the response
+||| just report the result status. This is useful when you don't
+||| care if/what the response looks like, just whether the command
+||| worked
 export
 perform : (command : String) -> Connection -> IO ResultStatus
 perform cmd = pgExec (\c => withExecResult c cmd (pure . pgResultStatus))
