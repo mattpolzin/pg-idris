@@ -122,7 +122,7 @@ typeResult [oid, type] = [(o, parseType type) | o <- parseOid oid]
 export
 pgLoadTypes : HasIO io => Conn -> io (Either String TypeDictionary)
 pgLoadTypes conn =
-  do Right (r ** 2 ** resultset) <- liftIO $ pgStringResultsQuery False typeQuery conn 
+  do Right (r ** 2 ** resultset) <- liftIO $ pgStringResultsQuery {types=empty} False typeQuery conn 
        | Right (_ ** c ** _) => pure $ Left $ "ERROR: expected 2 columns but got " ++ (show c)
        | Left err            => pure $ Left $ "ERROR: " ++ err
      -- could change following to successfully parse a subset of types even when failing on one of them.

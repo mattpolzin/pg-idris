@@ -60,10 +60,13 @@ openResult conn = case (pgStatus conn) of
 
 export
 data Connection : Type where
-  MkConnection : Conn -> Connection
+  MkConnection : Conn -> TypeDictionary -> Connection
 
 getConn : Connection -> Conn
-getConn (MkConnection conn) = conn
+getConn (MkConnection conn _) = conn
+
+getTypes : Connection -> TypeDictionary
+getTypes (MkConnection _ types) = types
 
 export
 data Database : (ty : Type) -> (s1 : DBState) -> (s2Fn : (ty -> DBState)) -> Type where
@@ -98,7 +101,7 @@ initDatabase : Database () Closed (const Closed)
 initDatabase = pure ()
 
 data ConnectionState : DBState -> Type where
-  CConnected : (conn : Conn) -> (typeDict : TypeDictionary) -> ConnectionState Open
+  CConnected : (conn : Connection) -> ConnectionState Open
   CDisconnected : ConnectionState Closed
 
 runDatabase' : HasIO io => ConnectionState s1 -> Database a s1 s2Fn -> io $ (x : a ** ConnectionState (s2Fn x))
@@ -106,13 +109,13 @@ runDatabase' CDisconnected (DBOpen url) = do conn <- pgOpen url
                                              Right types <- pgLoadTypes conn
                                                | Left err => pure (Failed err ** CDisconnected)
                                              pure $ case openResult conn of
-                                                         OK => (OK ** CConnected conn types)
+                                                         OK => (OK ** CConnected (MkConnection conn types))
                                                          Failed err => (Failed err ** CDisconnected)
-runDatabase' (CConnected conn _) DBClose = do pgClose conn
-                                              pure $ (() ** CDisconnected)
-runDatabase' (CConnected conn types) (Exec fn) = liftIO $ do res <- fn (MkConnection conn)
-                                                             pure (res ** CConnected conn types)
-runDatabase' (CConnected conn types) GetTypes = pure $ (types ** CConnected conn types)
+runDatabase' (CConnected conn) DBClose = do pgClose (getConn conn)
+                                            pure $ (() ** CDisconnected)
+runDatabase' (CConnected conn) (Exec fn) = liftIO $ do res <- fn conn
+                                                       pure (res ** CConnected conn)
+runDatabase' (CConnected conn) GetTypes = pure $ (getTypes conn ** CConnected conn)
 runDatabase' cs (Pure y) = pure (y ** cs)
 runDatabase' cs (Bind db f) = do (res ** cs') <- runDatabase' cs db
                                  runDatabase' cs' (f res)
@@ -139,7 +142,7 @@ exec = Exec
 ||| Conn, including closing the database connection prematurely.
 export
 unsafeExec : (Conn -> IO a) -> Database a Open (const Open)
-unsafeExec f = Exec \(MkConnection conn) => f conn
+unsafeExec f = Exec \(MkConnection conn empty) => f conn
 
 ||| Take a function that operates on a Conn
 ||| (currency of the underlying lower level
@@ -174,7 +177,7 @@ debugDumpTypes = do types <- GetTypes
 ||| Query the database interpreting all columns as strings.
 export
 stringQuery : (header : Bool) -> (query : String) -> Connection -> IO (Either String (StringResultset header))
-stringQuery header = pgExec . (pgStringResultsQuery header)
+stringQuery header query (MkConnection conn types) = pgStringResultsQuery header query conn
 
 ||| Query the database expecting a JSON result is returned.
 export 

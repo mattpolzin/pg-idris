@@ -4,10 +4,13 @@ import public Language.JSON
 
 import Postgres.Utility
 import Postgres.Data.Conn
+import Postgres.Data.PostgresType
 import Postgres.Exec
 import Postgres.Result
 import Data.Fin
 import Data.Vect
+
+%default total
 
 ||| Get the first row first column from the given
 ||| result. Will return `Nothing` if there are no
@@ -22,10 +25,16 @@ maybeFirstRowCol res = do row <- natToFin 0 r
 --
 
 export
-pgStringResultsQuery : (header : Bool) -> (query : String) -> Conn -> IO (Either String (StringResultset header))
+pgStringResultsQuery : {auto types : TypeDictionary} -> (header : Bool) -> (query : String) -> Conn -> IO (Either String (StringResultset header))
 pgStringResultsQuery header query conn = withExecResult conn query stringResults where
   headerNames : {cols : Nat} -> TupleResult rows cols -> Vect cols String
   headerNames t = pgResultsetColNames t
+
+  headerTypes : {cols : Nat} -> TupleResult rows cols -> Vect cols PType
+  headerTypes t = pgResultsetColTypes t
+
+  headers : {cols : Nat} -> TupleResult rows cols -> Vect cols ColHeader
+  headers t = (uncurry MkHeader) <$> (zip (headerNames t) (headerTypes t))
 
   rows : {rows, cols : Nat} -> TupleResult rows cols -> Vect rows (Vect cols String)
   rows t = (map force) <$> pgStringResultset t
@@ -36,7 +45,7 @@ pgStringResultsQuery header query conn = withExecResult conn query stringResults
                        Just tuples <- pure $ tupleResult r
                          | Nothing  => pure $ Left "query did not result in expected response."
                        pure $ Right $ if header
-                                      then (_ ** _ ** (headerNames tuples, rows tuples))
+                                      then (_ ** _ ** (headers tuples, rows tuples))
                                       else (_ ** _ ** rows tuples)
 
 --

@@ -84,6 +84,10 @@ export
 types : TypeDictionary -> List (Oid, PType)
 types (MkTypeDictionary xs) = xs
 
+export
+empty : TypeDictionary
+empty = MkTypeDictionary []
+
 ||| Create a dictionary of Postgres types. The dictionary is
 ||| sorted by Oid for future lookup.
 export

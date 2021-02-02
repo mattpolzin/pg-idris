@@ -2,6 +2,7 @@ module Main
 
 import Postgres
 import Data.Strings
+import Data.List
 
 error : Show a => {default "" ctx: String} -> a -> String
 error {ctx} diag = let ctxStr = if (strLength ctx) == 0
@@ -55,7 +56,7 @@ main = do
                              Right (_ ** _ ** (headers, results)) <- exec $ stringQuery True "select * from pg_type limit 10"
                                | Left err => liftIO' $ putStrLn err
                                | _ => liftIO' $ putStrLn "ERROR"
-                             liftIO' $ putStrLn (show headers)
+                             liftIO' $ putStrLn (unlines $ toList $ map (\(MkHeader n t) => n ++ ": " ++ (show t)) headers)
                              exec run
     | Left err => putErr {ctx="Connection"} err
 

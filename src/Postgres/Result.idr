@@ -154,12 +154,6 @@ resultColType (MkTupleResult (MkResult res)) col =
   let oid = prim__dbResultColType res (cast $ finToInteger col) in
       lookup (MkOid oid) types
 
-||| Get all the column types for the given result. Note that 
-||| this is currently limited by the few known types that
-||| are looked up and stored in the TypeDictionary.
-resultColTypes : {auto types : TypeDictionary} -> {cols : _} -> TupleResult rows cols -> Vect cols PType
-resultColTypes res = resultColType res <$> (range {len=cols})
-
 intToFormatCode : Int -> FormatCode
 intToFormatCode 0 = Text
 intToFormatCode 1 = Binary
@@ -185,6 +179,13 @@ pgResultStringValue (MkTupleResult (MkResult res)) row col = let r = cast $ the 
                                                                  c = cast $ the Nat (cast col) in 
                                                                  prim__dbResultValue res r c
 
+||| The combination of name and type information for a single Postgres result column.
+public export
+record ColHeader where
+  constructor MkHeader
+  name : String
+  type : PType
+
 --
 -- Resultset
 --
@@ -197,7 +198,7 @@ resultRow res row = valueAt <$> (range {len=cols}) where
 public export
 StringResultset : (header : Bool) -> Type
 StringResultset False = (rows ** cols ** Vect rows (Vect cols String))
-StringResultset True = (rows ** cols ** (Vect cols String, Vect rows (Vect cols String)))
+StringResultset True = (rows ** cols ** (Vect cols ColHeader, Vect rows (Vect cols String)))
 
 ||| Get the resultset (all rows and columns) with all values as Strings
 ||| regardless of the underlying Postgres value type.
@@ -208,6 +209,13 @@ pgStringResultset res = valueAt <$> (range {len=rows}) where
   valueAt = resultRow res
 
 export
-pgResultsetColNames : {cols : Nat} -> (res : TupleResult rows cols) -> (Vect cols String)
+pgResultsetColNames : {cols : Nat} -> (res : TupleResult rows cols) -> Vect cols String
 pgResultsetColNames res = resultColName res <$> (range {len=cols})
+
+||| Get all the column types for the given result. Note that 
+||| this is currently limited by the few known types that
+||| are looked up and stored in the TypeDictionary.
+export
+pgResultsetColTypes : {auto types : TypeDictionary} -> {cols : Nat} -> (res : TupleResult rows cols) -> Vect cols PType
+pgResultsetColTypes res = resultColType res <$> (range {len=cols})
 
