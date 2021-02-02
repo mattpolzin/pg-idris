@@ -8,7 +8,7 @@ fi
 function watch() {
   clear
   echo "waiting..."
-  fswatch -E --exclude='(.+\.idr~)|(.+\.swp.*)' -ro ./src | xargs -n1 ./learn.sh
+  fswatch -E --exclude='(.+\.idr~)|(.+\.swp.*)' -ro ./ | xargs -n1 ./watch_and_learn.sh
 }
 
 function learn() {
