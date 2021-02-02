@@ -148,11 +148,17 @@ resultValueIsNull (MkTupleResult (MkResult res)) row col =
 
 ||| Get the result column type. Note that this is currently limited
 ||| by the few known types that are looked up and stored in the
-||| TypeDictionary passed in.
+||| TypeDictionary.
 resultColType : {auto types : TypeDictionary} -> TupleResult r c -> (col : Fin c) -> PType
 resultColType (MkTupleResult (MkResult res)) col = 
   let oid = prim__dbResultColType res (cast $ finToInteger col) in
       lookup (MkOid oid) types
+
+||| Get all the column types for the given result. Note that 
+||| this is currently limited by the few known types that
+||| are looked up and stored in the TypeDictionary.
+resultColTypes : {auto types : TypeDictionary} -> {cols : _} -> TupleResult rows cols -> Vect cols PType
+resultColTypes res = resultColType res <$> (range {len=cols})
 
 intToFormatCode : Int -> FormatCode
 intToFormatCode 0 = Text
