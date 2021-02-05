@@ -86,11 +86,12 @@ pgJSONResultQuery query conn = withExecResult conn query toJson where
 
 -- Here you pass the vect of types you expect and get back results if possible.
 
+-- TODO: The following should operate on `Maybe String` where Nothing is a null postgres value.
 processValue : {expected : Type}
             -> HasDefaultType expected
             -> String
             -> Either String expected
-processValue hasDefault = (maybeToEither "Failed to parse value") . (asDefaultType hasDefault)
+processValue hasDefault = (asDefaultType hasDefault) . Just
 
 processCols : {expected : Vect cols Type}
            -> All HasDefaultType expected 

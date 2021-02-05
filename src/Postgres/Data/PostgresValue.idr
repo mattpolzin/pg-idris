@@ -1,5 +1,6 @@
 module Postgres.Data.PostgresValue
 
+import Data.Either
 import Data.Strings
 import Postgres.Data.PostgresType
 import Language.JSON
@@ -82,9 +83,56 @@ SafeCast (PValue PJson ct) JSON where
 
 public export
 data HasDefaultType : Type -> Type where
-  DInteger : HasDefaultType Integer 
+  DInteger  : HasDefaultType Integer 
+  DMInteger : HasDefaultType (Maybe Integer)
+  DDouble   : HasDefaultType Double
+  DMDouble  : HasDefaultType (Maybe Double)
+  DChar     : HasDefaultType Char
+  DMChar    : HasDefaultType (Maybe Char)
+  DBoolean  : HasDefaultType Bool
+  DMBoolean : HasDefaultType (Maybe Bool)
+  DString   : HasDefaultType String
+  DMString  : HasDefaultType (Maybe String)
+  DJson     : HasDefaultType JSON
+  DMJson    : HasDefaultType (Maybe JSON)
 
+notNothing : Maybe String -> Either String String
+notNothing = maybeToEither "Unexpected null"
+
+-- some gross repetition between the following two methods.
+-- having a bit of brain block figuring out how to combine
+-- the two right now.
+parse : {t : _} 
+     -> SafeCast (PValue t (MkColType False t)) to 
+     => (context : String) 
+     -> Maybe String 
+     -> Either String to
+parse ctx str = 
+  notNothing str >>= ((maybeToEither $ "Failed to parse " ++ ctx) . safeCast . (Raw {ct=(MkColType False t)}))
+
+parseNullable : {t : _} 
+             -> SafeCast (PValue t (MkColType True t)) to 
+             => (context : String) 
+             -> Maybe String 
+             -> Either String (Maybe to)
+parseNullable ctx str = 
+  case str of
+    Just s  => Just <$> ((maybeToEither $ "Failed to parse " ++ ctx) $ safeCast $ Raw {ct=(MkColType True t)} s)
+    Nothing => Right Nothing
+
+||| Turn the string coming from Postgres into its default Idris type.
 public export
-asDefaultType : HasDefaultType t -> String -> Maybe t
-asDefaultType DInteger = safeCast . (Raw {ct=(MkColType True PInteger)})
+asDefaultType : HasDefaultType t -> (columnValue : Maybe String) -> Either String t
+asDefaultType DInteger  = parse "Integer" {t=PInteger}
+asDefaultType DDouble   = parse "Double"  {t=PDouble}
+asDefaultType DChar     = parse "Char"    {t=PChar}
+asDefaultType DBoolean  = parse "Boolean" {t=PBoolean}
+asDefaultType DString   = parse "String"  {t=PString}
+asDefaultType DJson     = parse "JSON"    {t=PJson}
+asDefaultType DMInteger = parseNullable "Integer?" {t=PInteger}
+asDefaultType DMDouble  = parseNullable "Double?"  {t=PDouble}
+asDefaultType DMChar    = parseNullable "Char?"    {t=PChar}
+asDefaultType DMBoolean = parseNullable "Boolean?" {t=PBoolean}
+asDefaultType DMString  = parseNullable "String?"  {t=PString}
+asDefaultType DMJson    = parseNullable "JSON?"    {t=PJson}
 
