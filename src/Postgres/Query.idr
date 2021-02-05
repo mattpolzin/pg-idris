@@ -48,8 +48,8 @@ headers t = (uncurry MkHeader) <$> (zip (headerNames t) (headerTypes t))
 -- Stringy (unityped) Results
 --
 
-rows : {rows, cols : Nat} -> TupleResult rows cols -> Vect rows (Vect cols String)
-rows t = (map force) <$> pgStringResultset t
+rows : {rows, cols : Nat} -> TupleResult rows cols -> Vect rows (Vect cols (Maybe String))
+rows t = (map force) <$> pgNullableStringResultset t
 
 export
 pgStringResultsQuery : {auto types : TypeDictionary} 
@@ -86,16 +86,15 @@ pgJSONResultQuery query conn = withExecResult conn query toJson where
 
 -- Here you pass the vect of types you expect and get back results if possible.
 
--- TODO: The following should operate on `Maybe String` where Nothing is a null postgres value.
 processValue : {expected : Type}
             -> HasDefaultType expected
-            -> String
+            -> Maybe String
             -> Either String expected
-processValue hasDefault = (asDefaultType hasDefault) . Just
+processValue hasDefault = (asDefaultType hasDefault)
 
 processCols : {expected : Vect cols Type}
            -> All HasDefaultType expected 
-           -> Vect cols String 
+           -> Vect cols (Maybe String)
            -> Either String (HVect expected)
 processCols [] [] = Right []
 processCols (x :: y) (z :: xs) = [| (processValue x z) :: (processCols y xs) |]
@@ -104,7 +103,7 @@ processRows : {rows, cols, receivedCols : _}
            -> {expected : Vect cols Type} 
            -> {auto correctCols : receivedCols = cols}
            -> {auto castable : (All HasDefaultType expected)}
-           -> Vect rows (Vect receivedCols String) 
+           -> Vect rows (Vect receivedCols (Maybe String)) 
            -> Either String (Vect rows (HVect expected))
 processRows {cols} xs with (correctCols)
   processRows {cols = receivedCols} xs | Refl = traverse (processCols castable) xs 

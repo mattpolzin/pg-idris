@@ -51,7 +51,8 @@ stringTypeStrings : List String
 stringTypeStrings = [
     "text",
     "varchar",
-    "cstring"
+    "cstring",
+    "name" -- maybe its own type that is just _castable_ to String?
   ]
 
 jsonTypeStrings : List String
@@ -81,9 +82,10 @@ typeQuery = "SELECT oid, typname from pg_type where typname in (" ++ supportedTy
                                         ++ jsonTypeStrings
                                         ++ uuidTypeStrings)
 
-parseOid : String -> Either String Oid
-parseOid oid = maybeToEither "Found non-integer Oid" $
-                 MkOid <$> parseInteger oid
+parseOid : Maybe String -> Either String Oid
+parseOid oid = do str <- maybeToEither "Found null when looking for Oid" oid
+                  maybeToEither "Found non-integer Oid" $
+                    MkOid <$> parseInteger str
 
 ||| Using the groupings of Postgres string names for types that will
 ||| map to each PType, parse the given string to a PType (or POther)
@@ -114,8 +116,8 @@ parseType type = case isElem True typeSearch of
                               , jsonTypeStrings
                               , uuidTypeStrings]
 
-typeResult : Vect 2 String -> Either String (Oid, PType)
-typeResult [oid, type] = [(o, parseType type) | o <- parseOid oid]
+typeResult : Vect 2 (Maybe String) -> Either String (Oid, PType)
+typeResult [oid, type] = [(o, parseType t) | o <- parseOid oid, t <- (maybeToEither "Found null when looking for type" type)]
 
 ||| Load Postgres types into a type dictionary. This is needed so that future queries
 ||| can identify the types of columns in responses.

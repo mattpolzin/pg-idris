@@ -173,11 +173,33 @@ prim__dbResultValue : Ptr PGresult -> (row: Int) -> (col: Int) -> String
 
 ||| Get the result value at the given row and column as a String regardless
 ||| of what the underlying Postgres type is.
+|||
+||| Null postgres values are treated as empty strings.
+|||
+||| Use `pgResultNullableStringValue` to handle nulls as Nothing.
 export
 pgResultStringValue : (res: TupleResult rows cols) -> (row: Fin rows) -> (col: Fin cols) -> String
-pgResultStringValue (MkTupleResult (MkResult res)) row col = let r = cast $ the Nat (cast row)
-                                                                 c = cast $ the Nat (cast col) in 
-                                                                 prim__dbResultValue res r c
+pgResultStringValue (MkTupleResult (MkResult res)) row col = 
+  let r = cast $ the Nat (cast row)
+      c = cast $ the Nat (cast col) in 
+    prim__dbResultValue res r c
+
+||| Get the result value at the given row and column as a (Maybe String) regardless
+||| of what the underlying Postgres type is.
+|||
+||| Null postgres values are Nothing, whereas all other values are String (this does not
+||| fail to parse Strings by returning Nothing -- anything non-null is guaranteed to return
+||| a `Just` value).
+|||
+||| Use `pgResultStringValue` to handle nulls as empty Strings.
+export
+pgResultNullableStringValue : (res: TupleResult rows cols) -> (row: Fin rows) -> (col: Fin cols) -> Maybe String
+pgResultNullableStringValue (MkTupleResult (MkResult res)) row col = 
+  let r = cast $ the Nat (cast row)
+      c = cast $ the Nat (cast col) in 
+    case intToBool $ prim__dbResultValueIsNull res r c of
+         True  => Nothing
+         False => Just $ prim__dbResultValue res r c
 
 ||| The combination of name and type information for a single Postgres result column.
 public export
@@ -195,18 +217,47 @@ resultRow res row = valueAt <$> (range {len=cols}) where
   valueAt : Fin cols -> Lazy String
   valueAt col = pgResultStringValue res row col
 
-public export
-StringResultset : (header : Bool) -> Type
-StringResultset False = (rows ** cols ** Vect rows (Vect cols String))
-StringResultset True = (rows ** cols ** (Vect cols ColHeader, Vect rows (Vect cols String)))
+nullableResultRow : {cols: Nat} -> (res : TupleResult rows cols) -> (row: Fin rows) -> (Vect cols (Lazy (Maybe String)))
+nullableResultRow res row = valueAt <$> (range {len=cols}) where
+  valueAt : Fin cols -> Lazy (Maybe String)
+  valueAt col = pgResultNullableStringValue res row col
 
 ||| Get the resultset (all rows and columns) with all values as Strings
 ||| regardless of the underlying Postgres value type.
+|||
+||| Null is treated as the empty String.
+|||
+||| To get (Maybe String) where null is Nothing, use `pgNullableStringResultset`
 export
-pgStringResultset : {rows: Nat} -> {cols: Nat} -> (res : TupleResult rows cols) -> (Vect rows (Vect cols (Lazy String)))
+pgStringResultset : {rows: Nat} 
+                 -> {cols: Nat} 
+                 -> (res : TupleResult rows cols) 
+                 -> (Vect rows (Vect cols (Lazy String)))
 pgStringResultset res = valueAt <$> (range {len=rows}) where
   valueAt : Fin rows -> Vect cols (Lazy String)
   valueAt = resultRow res
+
+public export
+StringResultset : (header : Bool) -> Type
+StringResultset False = (rows ** cols ** Vect rows (Vect cols (Maybe String)))
+StringResultset True = (rows ** cols ** (Vect cols ColHeader, Vect rows (Vect cols (Maybe String))))
+
+||| Get the resultset (all rows and columns) with all values as (Maybe Strings)
+||| regardless of the underlying Postgres value type.
+|||
+||| Null is treated as Nothing -- No matter what type the Postgres column is, a non-null
+||| value will be a `Just` value with a String in it; Nothing only means null, not
+||| ever that the value failed to parse as a String.
+|||
+||| To get String where null is the empty String, use `pgStringResultset`
+export
+pgNullableStringResultset : {rows: Nat} 
+                         -> {cols: Nat} 
+                         -> (res : TupleResult rows cols) 
+                         -> (Vect rows (Vect cols (Lazy (Maybe String))))
+pgNullableStringResultset res = valueAt <$> (range {len=rows}) where
+  valueAt : Fin rows -> Vect cols (Lazy (Maybe String))
+  valueAt = nullableResultRow res
 
 export
 pgResultsetColNames : {cols : Nat} -> (res : TupleResult rows cols) -> Vect cols String

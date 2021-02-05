@@ -57,7 +57,7 @@ main = do
                              Right (_ ** _ ** (headers, results)) <- exec $ stringQuery True "select * from pg_type limit 10"
                                | Left err => liftIO' $ putStrLn err
                                | _ => liftIO' $ putStrLn "ERROR"
-                             Right (_ ** rows) <- exec $ expectedQuery [Integer] "select count(*) from pg_index"
+                             Right (_ ** rows) <- exec $ expectedQuery [String, String, Bool, Bool] "select schemaname, tablename, hasindexes, hastriggers from pg_catalog.pg_tables limit 10"
                                | Left err => liftIO' $ putStrLn err
                              liftIO' $ putStrLn $ show rows
                              liftIO' $ putStrLn (unlines $ toList $ map (\(MkHeader n t) => n ++ ": " ++ (show t)) headers)
