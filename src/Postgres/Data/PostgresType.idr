@@ -63,6 +63,22 @@ Show PType where
   show (POther x) = "Other: " ++ x
   show (PUnknown (MkOid oid)) = "Oid: " ++ (show oid)
 
+public export
+data PColType : PType -> Type where
+  MkColType : (nullable: Bool) -> (pt : PType) -> PColType pt
+
+export
+Show (PColType t) where
+  show (MkColType _ x) = show x
+
+public export
+pType : PColType t -> PType
+pType (MkColType _ t) = t
+
+public export
+nullable : PColType t -> Bool
+nullable (MkColType n _) = n
+
 --
 -- Format Code
 --

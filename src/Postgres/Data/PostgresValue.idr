@@ -5,42 +5,52 @@ import Postgres.Data.PostgresType
 import Language.JSON
 
 public export
-data PValue : (postgresType : PType) -> Type where
-  Raw : (raw : String) -> PValue t
+data PValue : (pType : PType) -> (colType : PColType pType) -> Type where
+  Raw : (rawString : String) -> PValue t ct
 
-raw : PValue ty -> String
-raw (Raw r) = r
+export
+rawString : PValue t ct -> String
+rawString (Raw r) = r
 
-interface CastMaybe ty1 ty2 where
-  castMaybe : ty1 -> Maybe ty2
+public export
+interface SafeCast ty1 ty2 where
+  safeCast : ty1 -> Maybe ty2
 
 -- Integer
 
-CastMaybe (PValue PInteger) Integer where
-  castMaybe  = parseInteger . raw
+export
+SafeCast (PValue PInteger ct) Integer where
+  safeCast = parseInteger . rawString
+
+export
+SafeCast (PValue PInteger ct) Double where
+  safeCast = parseDouble . rawString
 
 -- Double
 
-CastMaybe (PValue PDouble) Double where
-  castMaybe = parseDouble . raw
+export
+SafeCast (PValue PDouble ct) Double where
+  safeCast = parseDouble . rawString
   
 -- Char
 
-CastMaybe (PValue PChar) Char where
-  castMaybe (Raw str) with (unpack str)
-    castMaybe (Raw str) | [c] = Just c
-    castMaybe (Raw str) | _ = Nothing
+export
+SafeCast (PValue PChar ct) Char where
+  safeCast (Raw str) with (unpack str)
+    safeCast (Raw str) | [c] = Just c
+    safeCast (Raw str) | _ = Nothing
 
 -- Boolean
 
-CastMaybe (PValue PBoolean) Bool where
-  castMaybe (Raw "t") = Just True
-  castMaybe (Raw "f") = Just False
-  castMaybe (Raw "true") = Just True
-  castMaybe (Raw "false") = Just False
-  castMaybe (Raw "1") = Just True
-  castMaybe (Raw "0") = Just False
-  castMaybe (Raw _) = Nothing
+export
+SafeCast (PValue PBoolean ct) Bool where
+  safeCast (Raw "t") = Just True
+  safeCast (Raw "f") = Just False
+  safeCast (Raw "true") = Just True
+  safeCast (Raw "false") = Just False
+  safeCast (Raw "1") = Just True
+  safeCast (Raw "0") = Just False
+  safeCast (Raw _) = Nothing
 
 -- TODO: Date
 
@@ -50,16 +60,31 @@ CastMaybe (PValue PBoolean) Bool where
 
 -- String
 
-Cast (PValue PString) String where
-  cast (Raw raw) = raw
+export
+Cast (PValue PString ct) String where
+  cast = rawString
 
-CastMaybe (PValue PString) String where
-  castMaybe = Just . cast
+export
+SafeCast (PValue PString ct) String where
+  safeCast = Just . cast
 
 -- JSON
 
-CastMaybe (PValue PJson) JSON where
-  castMaybe (Raw raw) = parse raw
+export
+SafeCast (PValue PJson ct) JSON where
+  safeCast = parse . rawString
 
 -- TODO: UUID
+
+--
+-- Default Types
+--
+
+public export
+data HasDefaultType : Type -> Type where
+  DInteger : HasDefaultType Integer 
+
+public export
+asDefaultType : HasDefaultType t -> String -> Maybe t
+asDefaultType DInteger = safeCast . (Raw {ct=(MkColType True PInteger)})
 
