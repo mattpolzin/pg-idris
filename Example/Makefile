@@ -1,7 +1,7 @@
 IDRIS := idris2
 LIBDIR = `${IDRIS} --librdir`
 
-TARGET = Main
+TARGET = example
 
 LDFLAGS = -L$(LIBDIR)/pg-idris/lib
 CPPFLAGS = -I$(LIBDIR)/pg-idris/lib
@@ -12,7 +12,7 @@ all: build
 .PHONY: build
 
 build:
-	$(IDRIS) $(TARGET).idr -p pg-idris -p contrib -o example
+	$(IDRIS) --build $(TARGET).ipkg
 
 .PHONY: clean
 
