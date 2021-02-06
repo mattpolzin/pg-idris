@@ -6,6 +6,7 @@
 !_TAG_PROGRAM_VERSION	5.8	//
 (.types)	Postgres/Data/PostgresType.idr	/^(.types) : TypeDictionary -> List (Oid, PType)$/;"	d
 (>>=)	Postgres/DB.idr	/^(>>=) : (db : Database a s1 s2Fn) -> (f : (x : a) -> Database b (s2Fn x) s3Fn) -> Database b s1 s3Fn$/;"	d
+(processValue	Postgres/Query.idr	/^  [| (processValue castable x) :: (processCols castables xs) |]$/;"	c
 AUTH_OK	Postgres/Data/ConnectionStatus.idr	/^                      | AUTH_OK$/;"	c
 AWAITING_RESPONSE	Postgres/Data/ConnectionStatus.idr	/^                      | AWAITING_RESPONSE$/;"	c
 BAD	Postgres/Data/ConnectionStatus.idr	/^                      | BAD$/;"	c
@@ -26,8 +27,19 @@ ConnectionStatus	Postgres/Data/ConnectionStatus.idr	/^data ConnectionStatus = OK
 DBClose	Postgres/DB.idr	/^  DBClose : Database () Open (const Closed)$/;"	d
 DBOpen	Postgres/DB.idr	/^  DBOpen  : (url : String) -> Database OpenResult Closed OpenResultState$/;"	d
 DBState	Postgres/DB.idr	/^data DBState = Open | Closed$/;"	t
+DBoolean	Postgres/Data/PostgresValue.idr	/^  DBoolean  : HasDefaultType Bool$/;"	d
+DChar	Postgres/Data/PostgresValue.idr	/^  DChar     : HasDefaultType Char$/;"	d
+DDouble	Postgres/Data/PostgresValue.idr	/^  DDouble   : HasDefaultType Double$/;"	d
 DIO	Postgres/DB.idr	/^  DIO      : IO a -> Database a s1 (const s1)$/;"	d
-DInteger	Postgres/Data/PostgresValue.idr	/^  DInteger : HasDefaultType Integer $/;"	d
+DInteger	Postgres/Data/PostgresValue.idr	/^  DInteger  : HasDefaultType Integer $/;"	d
+DJson	Postgres/Data/PostgresValue.idr	/^  DJson     : HasDefaultType JSON$/;"	d
+DMBoolean	Postgres/Data/PostgresValue.idr	/^  DMBoolean : HasDefaultType (Maybe Bool)$/;"	d
+DMChar	Postgres/Data/PostgresValue.idr	/^  DMChar    : HasDefaultType (Maybe Char)$/;"	d
+DMDouble	Postgres/Data/PostgresValue.idr	/^  DMDouble  : HasDefaultType (Maybe Double)$/;"	d
+DMInteger	Postgres/Data/PostgresValue.idr	/^  DMInteger : HasDefaultType (Maybe Integer)$/;"	d
+DMJson	Postgres/Data/PostgresValue.idr	/^  DMJson    : HasDefaultType (Maybe JSON)$/;"	d
+DMString	Postgres/Data/PostgresValue.idr	/^  DMString  : HasDefaultType (Maybe String)$/;"	d
+DString	Postgres/Data/PostgresValue.idr	/^  DString   : HasDefaultType String$/;"	d
 Database	Postgres/DB.idr	/^data Database : (ty : Type) -> (s1 : DBState) -> (s2Fn : (ty -> DBState)) -> Type where$/;"	t
 EMPTY_QUERY	Postgres/Data/ResultStatus.idr	/^data ResultStatus = EMPTY_QUERY$/;"	c
 Exec	Postgres/DB.idr	/^  Exec    : (fn : Connection -> IO a) -> Database a Open (const Open)$/;"	d
@@ -73,9 +85,9 @@ PTime	Postgres/Data/PostgresType.idr	/^           | PTime$/;"	c
 PType	Postgres/Data/PostgresType.idr	/^data PType = PInteger$/;"	t
 PUnknown	Postgres/Data/PostgresType.idr	/^           | PUnknown Oid$/;"	c
 PUuid	Postgres/Data/PostgresType.idr	/^           | PUuid$/;"	c
-PValue	Postgres/Data/PostgresValue.idr	/^data PValue : (pType : PType) -> (colType : PColType pType) -> Type where$/;"	t
+PValue	Postgres/Data/PostgresValue.idr	/^data PValue : (pType : PType) -> Type where$/;"	t
 Pure	Postgres/DB.idr	/^  Pure    : (x : a) -> Database a (stateFn x) stateFn$/;"	d
-Raw	Postgres/Data/PostgresValue.idr	/^  Raw : (rawString : String) -> PValue t ct$/;"	d
+Raw	Postgres/Data/PostgresValue.idr	/^  Raw : (rawString : String) -> PValue t$/;"	d
 Result	Postgres/Result.idr	/^data Result : Type where$/;"	t
 ResultStatus	Postgres/Data/ResultStatus.idr	/^data ResultStatus = EMPTY_QUERY$/;"	t
 SETENV	Postgres/Data/ConnectionStatus.idr	/^                      | SETENV$/;"	c
@@ -87,7 +99,7 @@ TUPLES_OK	Postgres/Data/ResultStatus.idr	/^                  | TUPLES_OK$/;"	c
 Text	Postgres/Data/PostgresType.idr	/^data FormatCode = Text | Binary$/;"	c
 TupleResult	Postgres/Result.idr	/^data TupleResult : (rows: Nat) -> (cols: Nat) -> Type where$/;"	t
 TypeDictionary	Postgres/Data/PostgresType.idr	/^data TypeDictionary : Type where$/;"	t
-asDefaultType	Postgres/Data/PostgresValue.idr	/^asDefaultType : HasDefaultType t -> String -> Maybe t$/;"	d
+asDefaultType	Postgres/Data/PostgresValue.idr	/^asDefaultType : HasDefaultType t -> (columnValue : Maybe String) -> Either String t$/;"	d
 booleanTypeStrings	Postgres/LoadTypes.idr	/^booleanTypeStrings : List String$/;"	d
 channel	Postgres/Notification.idr	/^  channel : String$/;"	d
 charTypeStrings	Postgres/LoadTypes.idr	/^charTypeStrings : List String$/;"	d
@@ -127,18 +139,22 @@ maybeFirstRowCol	Postgres/Query.idr	/^maybeFirstRowCol : {r,c : Nat} -> TupleRes
 name	Postgres/Result.idr	/^  name : String$/;"	d
 next	Postgres/Notification.idr	/^  next : IO Notification$/;"	d
 nextNotification	Postgres/DB.idr	/^nextNotification : Connection -> IO (Maybe Notification)$/;"	d
+notNothing	Postgres/Data/PostgresValue.idr	/^notNothing : Maybe String -> Either String String$/;"	d
 notification	Postgres/Notification.idr	/^notification : PGnotify -> Notification$/;"	d
 notificationChannel	Postgres/Notification.idr	/^notificationChannel : PGnotify -> String$/;"	d
 notificationPayload	Postgres/Notification.idr	/^notificationPayload : PGnotify -> String$/;"	d
 notificationStream	Postgres/DB.idr	/^notificationStream : Connection -> Stream (IO Notification)$/;"	d
 notificationStruct	Postgres/Notification.idr	/^notificationStruct : HasIO io => Ptr PGnotify -> io PGnotify$/;"	d
 nullable	Postgres/Data/PostgresType.idr	/^nullable : PColType t -> Bool$/;"	d
-o	Postgres/LoadTypes.idr	/^typeResult [oid, type] = [(o, parseType type) | o <- parseOid oid]$/;"	c
+nullableResultRow	Postgres/Result.idr	/^nullableResultRow : {cols: Nat} -> (res : TupleResult rows cols) -> (row: Fin rows) -> (Vect cols (Lazy (Maybe String)))$/;"	d
+o	Postgres/LoadTypes.idr	/^typeResult [oid, type] = [(o, parseType t) | o <- parseOid oid, t <- (maybeToEither "Found null when looking for type" type)]$/;"	c
 oidToInt	Postgres/Data/PostgresType.idr	/^oidToInt : Oid -> Int$/;"	d
 openDatabase	Postgres/DB.idr	/^openDatabase : (url : String) -> Database OpenResult Closed OpenResultState$/;"	d
 openResult	Postgres/DB.idr	/^openResult : Conn -> OpenResult$/;"	d
 pType	Postgres/Data/PostgresType.idr	/^pType : PColType t -> PType$/;"	d
-parseOid	Postgres/LoadTypes.idr	/^parseOid : String -> Either String Oid$/;"	d
+parse	Postgres/Data/PostgresValue.idr	/^parse : {t : _} $/;"	d
+parseNullable	Postgres/Data/PostgresValue.idr	/^parseNullable : {t : _} $/;"	d
+parseOid	Postgres/LoadTypes.idr	/^parseOid : Maybe String -> Either String Oid$/;"	d
 parseType	Postgres/LoadTypes.idr	/^parseType : String -> PType$/;"	d
 payload	Postgres/Notification.idr	/^  payload : String$/;"	d
 perform	Postgres/DB.idr	/^perform : (command : String) -> Connection -> IO ResultStatus$/;"	d
@@ -150,8 +166,10 @@ pgListen	Postgres/Notification.idr	/^pgListen : (channel: String) -> Conn -> IO 
 pgLoadTypes	Postgres/LoadTypes.idr	/^pgLoadTypes : HasIO io => Conn -> io (Either String TypeDictionary)$/;"	d
 pgNextNotification	Postgres/Notification.idr	/^pgNextNotification : Conn -> IO (Maybe Notification)$/;"	d
 pgNotificationStream	Postgres/Notification.idr	/^pgNotificationStream : Conn -> Stream (IO Notification)$/;"	d
+pgNullableStringResultset	Postgres/Result.idr	/^pgNullableStringResultset : {rows: Nat} $/;"	d
 pgOpen	Postgres/DB/Core.idr	/^pgOpen : HasIO io => (pgUrl: String) -> io Conn$/;"	d
 pgResultErrorMessage	Postgres/Result.idr	/^pgResultErrorMessage : Result -> Maybe String$/;"	d
+pgResultNullableStringValue	Postgres/Result.idr	/^pgResultNullableStringValue : (res: TupleResult rows cols) -> (row: Fin rows) -> (col: Fin cols) -> Maybe String$/;"	d
 pgResultQuery	Postgres/Query.idr	/^pgResultQuery : {auto types : TypeDictionary} $/;"	d
 pgResultSize	Postgres/Result.idr	/^pgResultSize : {r: Nat} -> {c: Nat} -> TupleResult r c -> (Nat, Nat)$/;"	d
 pgResultStatus	Postgres/Result.idr	/^pgResultStatus : Result -> ResultStatus$/;"	d
@@ -161,7 +179,7 @@ pgResultsetColNames	Postgres/Result.idr	/^pgResultsetColNames : {cols : Nat} -> 
 pgResultsetColTypes	Postgres/Result.idr	/^pgResultsetColTypes : {auto types : TypeDictionary} -> {cols : Nat} -> (res : TupleResult rows cols) -> Vect cols PType$/;"	d
 pgStatus	Postgres/DB/Core.idr	/^pgStatus : Conn -> ConnectionStatus$/;"	d
 pgStringResultsQuery	Postgres/Query.idr	/^pgStringResultsQuery : {auto types : TypeDictionary} $/;"	d
-pgStringResultset	Postgres/Result.idr	/^pgStringResultset : {rows: Nat} -> {cols: Nat} -> (res : TupleResult rows cols) -> (Vect rows (Vect cols (Lazy String)))$/;"	d
+pgStringResultset	Postgres/Result.idr	/^pgStringResultset : {rows: Nat} $/;"	d
 pgWait	Postgres/DB/Wait.idr	/^pgWait : Conn -> IO Bool$/;"	d
 prim__dbClearResult	Postgres/Result.idr	/^prim__dbClearResult : Ptr PGresult -> PrimIO ()$/;"	d
 prim__dbClose	Postgres/DB/Core.idr	/^prim__dbClose : Ptr PGconn -> PrimIO ()$/;"	d
@@ -184,12 +202,12 @@ prim__dbStatus	Postgres/DB/Core.idr	/^prim__dbStatus : Ptr PGconn -> Int$/;"	d
 prim__dbWait	Postgres/DB/Wait.idr	/^prim__dbWait : Ptr PGconn -> PrimIO Int$/;"	d
 prim__isNullNotifyStruct	Postgres/Notification.idr	/^prim__isNullNotifyStruct : Ptr PGnotify -> Int$/;"	d
 prim__string_value	Postgres/Utility.idr	/^prim__string_value : Ptr String -> String$/;"	d
-processCols	Postgres/Query.idr	/^processCols : {expected : Vect cols Type}$/;"	d
-processRows	Postgres/Query.idr	/^processRows : {rows, cols, receivedCols : _} $/;"	d
-processValue	Postgres/Query.idr	/^processValue : {expected : Type}$/;"	d
+processCols	Postgres/Query.idr	/^processCols : {0 expected : Vect cols Type}$/;"	d
+processRows	Postgres/Query.idr	/^processRows : {0 expected : Vect cols Type} $/;"	d
+processValue	Postgres/Query.idr	/^processValue : HasDefaultType expected$/;"	d
 pure	Postgres/DB.idr	/^pure : (x : a) -> Database a (stateFn x) stateFn$/;"	d
 quote	Postgres/LoadTypes.idr	/^quote : String -> String$/;"	d
-rawString	Postgres/Data/PostgresValue.idr	/^rawString : PValue t ct -> String$/;"	d
+rawString	Postgres/Data/PostgresValue.idr	/^rawString : PValue t -> String$/;"	d
 resultColCount	Postgres/Result.idr	/^resultColCount : Result -> Nat$/;"	d
 resultColFormatCode	Postgres/Result.idr	/^resultColFormatCode : TupleResult r c -> (col : Fin c) -> FormatCode$/;"	d
 resultColName	Postgres/Result.idr	/^resultColName : TupleResult r c -> (col : Fin c) -> String$/;"	d
@@ -198,7 +216,7 @@ resultRow	Postgres/Result.idr	/^resultRow : {cols: Nat} -> (res : TupleResult ro
 resultRowCount	Postgres/Result.idr	/^resultRowCount : Result -> Nat$/;"	d
 resultStatus	Postgres/Result.idr	/^resultStatus : Int -> ResultStatus$/;"	d
 resultValueIsNull	Postgres/Result.idr	/^resultValueIsNull : TupleResult r c -> (row : Fin r) -> (col : Fin c) -> Bool$/;"	d
-rows	Postgres/Query.idr	/^rows : {rows, cols : Nat} -> TupleResult rows cols -> Vect rows (Vect cols String)$/;"	d
+rows	Postgres/Query.idr	/^rows : {rows, cols : Nat} -> TupleResult rows cols -> Vect rows (Vect cols (Maybe String))$/;"	d
 runDatabase'	Postgres/DB.idr	/^runDatabase' : HasIO io => ConnectionState s1 -> Database a s1 s2Fn -> io $ (x : a ** ConnectionState (s2Fn x))$/;"	d
 safeCast	Postgres/Data/PostgresValue.idr	/^  safeCast : ty1 -> Maybe ty2$/;"	d
 showTuple	Postgres/Data/PostgresType.idr	/^      showTuple : (Oid, PType) -> String$/;"	d
@@ -213,12 +231,14 @@ tupleResult	Postgres/Result.idr	/^tupleResult : (res: Result) -> Maybe (TupleRes
 type	Postgres/Result.idr	/^  type : PType$/;"	d
 typeDictionary	Postgres/Data/PostgresType.idr	/^typeDictionary : List (Oid, PType) -> TypeDictionary$/;"	d
 typeQuery	Postgres/LoadTypes.idr	/^typeQuery : String$/;"	d
-typeResult	Postgres/LoadTypes.idr	/^typeResult : Vect 2 String -> Either String (Oid, PType)$/;"	d
+typeResult	Postgres/LoadTypes.idr	/^typeResult : Vect 2 (Maybe String) -> Either String (Oid, PType)$/;"	d
 typeSearch	Postgres/LoadTypes.idr	/^    typeSearch : Vect ? Bool$/;"	d
 types	Postgres/Data/PostgresType.idr	/^types : TypeDictionary -> List (Oid, PType)$/;"	d
 unsafeExec	Postgres/DB.idr	/^unsafeExec : (Conn -> IO a) -> Database a Open (const Open)$/;"	d
 uuidTypeStrings	Postgres/LoadTypes.idr	/^uuidTypeStrings : List String$/;"	d
+valueAt	Postgres/Result.idr	/^  valueAt : Fin cols -> Lazy (Maybe String)$/;"	d
 valueAt	Postgres/Result.idr	/^  valueAt : Fin cols -> Lazy String$/;"	d
+valueAt	Postgres/Result.idr	/^  valueAt : Fin rows -> Vect cols (Lazy (Maybe String))$/;"	d
 valueAt	Postgres/Result.idr	/^  valueAt : Fin rows -> Vect cols (Lazy String)$/;"	d
 withConn	Postgres/DB.idr	/^withConn : HasIO io => (pgUrl: String) -> (onOpen: Conn -> io b) -> (onError: ConnectionStatus -> io b) -> io b$/;"	d
 withDB	Postgres/DB.idr	/^withDB : HasIO io => (url : String) -> Database a Open (const Open) -> io $ Either String a$/;"	d

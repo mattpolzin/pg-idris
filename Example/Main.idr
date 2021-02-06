@@ -2,6 +2,7 @@ module Main
 
 import Postgres
 import Data.Strings
+import Data.String.Extra
 import Data.List
 import Data.HVect
 
@@ -28,23 +29,54 @@ execStatement conn = do
    | Nothing => putErr "command failed."
   putStrLn $ show json
 
+describeResult : Connection -> IO ()
+describeResult conn = do
+  query <- getLine
+  Right (_ ** _ ** (headers, _)) <- stringQuery True query conn
+    | Left err => putStrLn err
+  putStrLn (join ", " $ map (\(MkHeader n t) => n ++ ": " ++ (show t)) headers)
+  
+showResult : Connection -> IO ()
+showResult conn = do
+  query <- getLine
+  Right (_ ** _ ** rows) <- stringQuery False query conn
+    | Left err => putStrLn err
+  for_ rows $ \row => do
+    putStrLn (join ", " $ (\case Just s => s; Nothing => "null") <$> row)
+
+showTables : Connection -> IO ()
+showTables conn = do
+  Right (_ ** rows) <- expectedQuery [String, String, Bool] "select schemaname, tablename, hasindexes from pg_tables limit 10" conn
+    | Left err => putStrLn err
+  for_ rows $ \(schema :: table :: hasIndices :: []) => do
+    putStrLn $ schema ++ "." ++ table ++ (if hasIndices then " (has indices)" else " (doesn't have indices)")
+
 run : Connection -> IO ()
 run conn = do
-    putStrLn "Connected"
+  putStrLn "Connected"
 
-    COMMAND_OK <- listen "test_channel" conn
-     | x => putErr {ctx="Listening"} x
+  COMMAND_OK <- listen "test_channel" conn
+   | x => putErr {ctx="Listening"} x
 
-    putStrLn "Choose One:"
-    putStrLn "1 => Arbitrary Statement"
-    putStrLn "2 => Notification Loop"
-    opt <- getLine
-    case (stringToNatOrZ opt) of
-         1 => do putStrLn "Enter SQL: "
-                 execStatement conn
-         2 => do putStrLn "Entering notification loop.."
-                 notificationLoop $ notificationStream conn
-         _ => pure ()
+  putStrLn "Choose One:"
+  putStrLn "1 => Arbitrary JSON Statement"
+  putStrLn "2 => Notification Loop"
+  putStrLn "3 => Describe Arbitrary Result"
+  putStrLn "4 => Show Arbitrary SELECT Result Rows"
+  putStrLn "5 => Show 10 tables."
+  opt <- getLine
+  case (stringToNatOrZ opt) of
+       1 => do putStrLn "Enter SQL: "
+               execStatement conn
+       2 => do putStrLn "Entering notification loop..."
+               notificationLoop $ notificationStream conn
+       3 => do putStrLn "Enter SQL: "
+               describeResult conn
+       4 => do putStrLn "Enter SQL: "
+               showResult conn
+       5 => do putStrLn "Showing 10 tables..."
+               showTables conn
+       _ => pure ()
 
 public export
 main : IO ()
@@ -53,15 +85,7 @@ main = do
   url <- getLine
   putStrLn "starting up..."
 
-  Right _ <- withDB url $ do debugDumpTypes
-                             Right (_ ** _ ** (headers, results)) <- exec $ stringQuery True "select * from pg_type limit 10"
-                               | Left err => liftIO' $ putStrLn err
-                               | _ => liftIO' $ putStrLn "ERROR"
-                             Right (_ ** rows) <- exec $ expectedQuery [String, String, Bool, Bool] "select schemaname, tablename, hasindexes, hastriggers from pg_catalog.pg_tables limit 10"
-                               | Left err => liftIO' $ putStrLn err
-                             liftIO' $ putStrLn $ show rows
-                             liftIO' $ putStrLn (unlines $ toList $ map (\(MkHeader n t) => n ++ ": " ++ (show t)) headers)
-                             exec run
+  Right _ <- withDB url (exec run)
     | Left err => putErr {ctx="Connection"} err
 
   putStrLn "shutting down..."

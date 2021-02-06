@@ -187,6 +187,8 @@ export
 jsonQuery : (query : String) -> Connection -> IO (Maybe JSON)
 jsonQuery = pgExec . pgJSONResultQuery
 
+||| Query the database expecting the given array of types in each
+||| row of the result returned.
 export
 expectedQuery : {cols : Nat} 
              -> (expected : Vect cols Type) 
