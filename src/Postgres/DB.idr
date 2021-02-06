@@ -8,10 +8,13 @@ import Postgres.DB.Core
 import Postgres.Data.Conn
 import Postgres.Data.ConnectionStatus
 import Postgres.Data.PostgresType
+import Postgres.Data.PostgresValue
 import Postgres.Exec
 import Postgres.LoadTypes
 import Postgres.Notification
 import Language.JSON
+import Data.HVect
+import Data.Vect.Quantifiers
 
 --
 -- Safe connection
@@ -183,6 +186,17 @@ stringQuery header query (MkConnection conn types) = pgStringResultsQuery header
 export 
 jsonQuery : (query : String) -> Connection -> IO (Maybe JSON)
 jsonQuery = pgExec . pgJSONResultQuery
+
+||| Query the database expecting the given array of types in each
+||| row of the result returned.
+export
+expectedQuery : {cols : Nat} 
+             -> (expected : Vect cols Type) 
+             -> (query : String) 
+             -> {auto castable : (All HasDefaultType expected)} 
+             -> Connection 
+             -> IO (Either String (rows ** Vect rows (HVect expected)))
+expectedQuery expected query (MkConnection conn types) = pgResultQuery expected query conn
 
 ||| Start listening for notifications on the given channel.
 export

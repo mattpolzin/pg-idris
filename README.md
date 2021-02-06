@@ -13,6 +13,7 @@ Currently supports:
 - Arbitrary string commands with the result status returned.
 - Arbitrary string queries with response parsed as JSON.
 - Arbitrary string queries with result columns all interpreted as Strings.
+- String queries with result rows containing given expected Idris types.
 - Listen for notifications on a particular channel.
 - Request next unprocessed notification.
 
@@ -88,9 +89,22 @@ stringQuery : (header : Bool) -> (query : String) -> Connection -> IO (Either St
 ||| Query the database expecting a JSON result is returned.
 jsonQuery : (query : String) -> Connection -> IO (Maybe JSON)
 
+||| Query the database expecting the given array of types in each
+||| row of the result returned.
+expectedQuery : {cols : Nat} 
+             -> (expected : Vect cols Type) 
+             -> (query : String) 
+             -> {auto castable : (All HasDefaultType expected)} 
+             -> Connection 
+             -> IO (Either String (rows ** Vect rows (HVect expected)))
+
 ||| Start listening for notifications on the given channel.
 listen : (channel : String) -> Connection -> IO ResultStatus
 
+||| Perform the given command and instead of parsing the response
+||| just report the result status. This is useful when you don't
+||| care if/what the response looks like, just whether the command
+||| worked
 perform : (command : String) -> Connection -> IO ResultStatus
 
 ||| Gets the next notification _of those sitting around locally_.
@@ -109,8 +123,8 @@ nextNotification : Connection -> IO (Maybe Notification)
 It's worth mentioning that the `stringQuery` success case can either have a header (with column names) or not:
 ```idris
 StringResultset : (header : Bool) -> Type
-StringResultset False = (rows ** cols ** Vect rows (Vect cols String))
-StringResultset True = (rows ** cols ** (Vect cols String, Vect rows (Vect cols String)))
+StringResultset False = (rows ** cols ** Vect rows (Vect cols (Maybe String)))
+StringResultset True = (rows ** cols ** (Vect cols ColHeader, Vect rows (Vect cols (Maybe String))))
 ```
 
 Notice that other than JSON responses, all responses are currently string-typed requiring extra work to attempt to parse them into expected value types. Getting better types out of this library is the current area of development.

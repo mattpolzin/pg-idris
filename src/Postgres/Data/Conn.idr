@@ -8,3 +8,5 @@ data PGconn : Type
 public export
 data Conn : Type where
   MkConn : Ptr PGconn -> Conn
+
+%name Conn conn

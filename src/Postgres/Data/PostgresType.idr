@@ -6,8 +6,9 @@ import Data.List
 
 -- see src/include/catalog/pg_type.h
 
--- just going to have to load types from Postgres:
--- https://github.com/elixir-ecto/postgrex/blob/master/lib/postgrex/types.ex
+--
+-- Oid
+--
 
 ||| Postgres Oids are just integers that have special
 ||| internal semantics within Postgres.
@@ -20,6 +21,16 @@ Eq Oid where
 
 Show Oid where
   show (MkOid oid) = show oid
+
+||| Get an integer representation of an Oid. Probably only useful
+||| when actually sending the Oid to Postgres for some reason.
+export
+oidToInt : Oid -> Int
+oidToInt (MkOid x) = x
+
+--
+-- Type
+--
 
 ||| Not an exhaustive list of types, just a short list of
 ||| builtins with explicit support in this library.
@@ -53,6 +64,26 @@ Show PType where
   show (PUnknown (MkOid oid)) = "Oid: " ++ (show oid)
 
 public export
+data PColType : PType -> Type where
+  MkColType : (nullable: Bool) -> (pt : PType) -> PColType pt
+
+export
+Show (PColType t) where
+  show (MkColType _ x) = show x
+
+public export
+pType : PColType t -> PType
+pType (MkColType _ t) = t
+
+public export
+nullable : PColType t -> Bool
+nullable (MkColType n _) = n
+
+--
+-- Format Code
+--
+
+public export
 data FormatCode = Text | Binary
 
 export
@@ -60,11 +91,9 @@ Show FormatCode where
   show Text   = "Text"
   show Binary = "Binary"
 
-||| Get an integer representation of an Oid. Probably only useful
-||| when actually sending the Oid to Postgres for some reason.
-export
-oidToInt : Oid -> Int
-oidToInt (MkOid x) = x
+--
+-- Type Dictionary
+--
 
 export
 data TypeDictionary : Type where
