@@ -86,45 +86,42 @@ pgJSONResultQuery query conn = withExecResult conn query toJson where
 
 -- Here you pass the vect of types you expect and get back results if possible.
 
-processValue : {expected : Type}
-            -> HasDefaultType expected
+processValue : HasDefaultType expected
             -> Maybe String
             -> Either String expected
 processValue hasDefault = (asDefaultType hasDefault)
 
-processCols : {expected : Vect cols Type}
+processCols : {0 expected : Vect cols Type}
            -> All HasDefaultType expected 
            -> Vect cols (Maybe String)
            -> Either String (HVect expected)
 processCols [] [] = Right []
-processCols (x :: y) (z :: xs) = [| (processValue x z) :: (processCols y xs) |]
+processCols (castable :: castables) (x :: xs) = 
+  [| (processValue castable x) :: (processCols castables xs) |]
 
-processRows : {rows, cols, receivedCols : _} 
-           -> {expected : Vect cols Type} 
-           -> {auto correctCols : receivedCols = cols}
+processRows : {0 expected : Vect cols Type} 
            -> {auto castable : (All HasDefaultType expected)}
-           -> Vect rows (Vect receivedCols (Maybe String)) 
+           -> Vect rows (Vect cols (Maybe String)) 
            -> Either String (Vect rows (HVect expected))
-processRows {cols} xs with (correctCols)
-  processRows {cols = receivedCols} xs | Refl = traverse (processCols castable) xs 
+processRows {cols} xs = traverse (processCols castable) xs 
 
 ||| Get the result as a rows of the expected types of values if possible.
 export
 pgResultQuery : {auto types : TypeDictionary} 
-             -> (query : String) 
              -> {cols : Nat}
              -> (expected : Vect cols Type) 
+             -> (query : String) 
              -> Conn 
              -> {auto castable : (All HasDefaultType expected)}
              -> IO (Either String (rows ** Vect rows (HVect expected)))
-pgResultQuery query {cols} expected conn = 
+pgResultQuery {cols} expected query conn = 
   do Right (rows ** receivedCols ** strings) <- pgStringResultsQuery False query conn
        | Left err => pure $ Left err
-     case decEq receivedCols cols of
+     case decEq cols receivedCols of
           (No _) => 
             pure $ Left $ columnMismatchError receivedCols
           (Yes correctCols) => 
-            pure $ (MkDPair rows) <$> processRows strings
+            pure $ (MkDPair rows) <$> processRows rewrite correctCols in strings
     where
       columnMismatchError : (received : Nat) -> String
       columnMismatchError received = 

@@ -6,11 +6,11 @@ import Postgres.Data.PostgresType
 import Language.JSON
 
 public export
-data PValue : (pType : PType) -> (colType : PColType pType) -> Type where
-  Raw : (rawString : String) -> PValue t ct
+data PValue : (pType : PType) -> Type where
+  Raw : (rawString : String) -> PValue t
 
 export
-rawString : PValue t ct -> String
+rawString : PValue t -> String
 rawString (Raw r) = r
 
 public export
@@ -20,23 +20,23 @@ interface SafeCast ty1 ty2 where
 -- Integer
 
 export
-SafeCast (PValue PInteger ct) Integer where
+SafeCast (PValue PInteger) Integer where
   safeCast = parseInteger . rawString
 
 export
-SafeCast (PValue PInteger ct) Double where
+SafeCast (PValue PInteger) Double where
   safeCast = parseDouble . rawString
 
 -- Double
 
 export
-SafeCast (PValue PDouble ct) Double where
+SafeCast (PValue PDouble) Double where
   safeCast = parseDouble . rawString
   
 -- Char
 
 export
-SafeCast (PValue PChar ct) Char where
+SafeCast (PValue PChar) Char where
   safeCast (Raw str) with (unpack str)
     safeCast (Raw str) | [c] = Just c
     safeCast (Raw str) | _ = Nothing
@@ -44,7 +44,7 @@ SafeCast (PValue PChar ct) Char where
 -- Boolean
 
 export
-SafeCast (PValue PBoolean ct) Bool where
+SafeCast (PValue PBoolean) Bool where
   safeCast (Raw "t") = Just True
   safeCast (Raw "f") = Just False
   safeCast (Raw "true") = Just True
@@ -62,17 +62,17 @@ SafeCast (PValue PBoolean ct) Bool where
 -- String
 
 export
-Cast (PValue PString ct) String where
+Cast (PValue PString) String where
   cast = rawString
 
 export
-SafeCast (PValue PString ct) String where
+SafeCast (PValue PString) String where
   safeCast = Just . cast
 
 -- JSON
 
 export
-SafeCast (PValue PJson ct) JSON where
+SafeCast (PValue PJson) JSON where
   safeCast = parse . rawString
 
 -- TODO: UUID
@@ -103,21 +103,21 @@ notNothing = maybeToEither "Unexpected null"
 -- having a bit of brain block figuring out how to combine
 -- the two right now.
 parse : {t : _} 
-     -> SafeCast (PValue t (MkColType False t)) to 
+     -> SafeCast (PValue t) to 
      => (context : String) 
      -> Maybe String 
      -> Either String to
 parse ctx str = 
-  notNothing str >>= ((maybeToEither $ "Failed to parse " ++ ctx) . safeCast . (Raw {ct=(MkColType False t)}))
+  notNothing str >>= ((maybeToEither $ "Failed to parse " ++ ctx) . safeCast . Raw {t})
 
 parseNullable : {t : _} 
-             -> SafeCast (PValue t (MkColType True t)) to 
+             -> SafeCast (PValue t) to 
              => (context : String) 
              -> Maybe String 
              -> Either String (Maybe to)
 parseNullable ctx str = 
   case str of
-    Just s  => Just <$> ((maybeToEither $ "Failed to parse " ++ ctx) $ safeCast $ Raw {ct=(MkColType True t)} s)
+    Just s  => Just <$> ((maybeToEither $ "Failed to parse " ++ ctx) $ safeCast $ Raw {t} s)
     Nothing => Right Nothing
 
 ||| Turn the string coming from Postgres into its default Idris type.

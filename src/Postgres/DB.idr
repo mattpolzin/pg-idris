@@ -194,7 +194,7 @@ expectedQuery : {cols : Nat}
              -> {auto castable : (All HasDefaultType expected)} 
              -> Connection 
              -> IO (Either String (rows ** Vect rows (HVect expected)))
-expectedQuery expected query (MkConnection conn types) = pgResultQuery query expected conn
+expectedQuery expected query (MkConnection conn types) = pgResultQuery expected query conn
 
 ||| Start listening for notifications on the given channel.
 export
