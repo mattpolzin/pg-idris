@@ -127,7 +127,7 @@ StringResultset False = (rows ** cols ** Vect rows (Vect cols (Maybe String)))
 StringResultset True = (rows ** cols ** (Vect cols ColHeader, Vect rows (Vect cols (Maybe String))))
 ```
 
-So far the most type safety you can get is via either the `jsonQuery` or the `expectedQuery`. The former just expected 1 column in the result and attempts to parse it to JSON. An example use of the latter would be getting a list of Postgres tables and whether each one has indices:
+So far the most type safety you can get is via either the `jsonQuery` or the `expectedQuery`. The former just expects 1 column in the result and attempts to parse it as JSON. An example use of the latter would be getting a list of Postgres tables and whether each one has indices:
 ```idris
 expectedQuery [String, String, Bool] "select schemaname, tablename, hasindexes from pg_tables limit 10" conn
 ```
