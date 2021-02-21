@@ -193,7 +193,7 @@ export
 expectedQuery : {cols : Nat} 
              -> (expected : Vect cols Type) 
              -> (query : String) 
-             -> {auto castable : (All HasDefaultType expected)} 
+             -> {auto castable : (All Castable expected)} 
              -> Connection 
              -> IO (Either String (rows ** Vect rows (HVect expected)))
 expectedQuery expected query (MkConnection conn types) = pgResultQuery expected query conn
