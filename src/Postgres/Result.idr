@@ -208,6 +208,10 @@ record ColHeader where
   name : String
   type : PType
 
+export
+Show ColHeader where
+  show (MkHeader name type) = name ++ " " ++ (show type)
+
 --
 -- Resultset
 --
