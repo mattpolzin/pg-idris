@@ -55,6 +55,13 @@ showTables conn = do
   for_ rows $ \(schema :: table :: hasIndices :: []) => do
     putStrLn $ schema ++ "." ++ table ++ (if hasIndices then " (has indices)" else " (doesn't have indices)")
 
+showFunctions : Connection -> IO ()
+showFunctions conn = do
+  Right (_ ** rows) <- expectedQuery [String, List String] "select proname, proargnames from pg_proc where proargnames != '{}' limit 10" conn
+    | Left err => putStrLn err
+  for_ rows $ \(name :: args :: []) => do
+    putStrLn $ name ++ "(" ++ (join ", " args) ++ ")"
+
 describeFnTable : Connection -> IO ()
 describeFnTable conn = do
   describe "select * from pg_proc limit 1" conn
@@ -73,6 +80,7 @@ run conn = do
   putStrLn "4 => Describe pg_proc table."
   putStrLn "5 => Show Arbitrary SELECT Result Rows"
   putStrLn "6 => Show 10 tables."
+  putStrLn "7 => Show 10 functions."
   opt <- getLine
   case (stringToNatOrZ opt) of
        1 => do putStrLn "Enter SQL: "
@@ -86,6 +94,8 @@ run conn = do
                showResult conn
        6 => do putStrLn "Showing 10 tables..."
                showTables conn
+       7 => do putStrLn "Showing 10 functions..."
+               showFunctions conn
        _ => pure ()
 
 public export
