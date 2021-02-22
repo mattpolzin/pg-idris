@@ -86,6 +86,9 @@ typeQuery = "SELECT oid, typname from pg_type where typname in (" ++ queryTypes 
                   ++ uuidTypeStrings
                   ++ oidTypeStrings
 
+    -- This is a bit fragile but we currently load types in by their common names
+    -- and postgres names array types the same as the type the array contains with
+    -- a leading underscore.
     queryTypes : String
     queryTypes = join "," $ quote <$> (((strCons '_') <$> supportedTypes) ++ supportedTypes)
 
@@ -118,7 +121,9 @@ parseType type = case isElem True typeSearch of
   where
     ||| First element of tuple is true if the type
     ||| is an array. Second element of tuple is the
-    ||| OID of the non-array type.
+    ||| name of the non-array type (because array types
+    ||| are named the same as non-array types but with
+    ||| a leading underscore).
     typeSpec : (Bool, String)
     typeSpec = if "_" `isPrefixOf` type
                   then (True, drop 1 type)
