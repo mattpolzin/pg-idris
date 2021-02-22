@@ -131,4 +131,4 @@ So far the most type safety you can get is via either the `jsonQuery` or the `ex
 ```idris
 expectedQuery [String, String, Bool] "select schemaname, tablename, hasindexes from pg_tables limit 10" conn
 ```
-You can find the Idris types supported by `expectedQuery` under the definition of [`HasDefaultType`](https://github.com/mattpolzin/pg-idris/blob/main/src/Postgres/Data/PostgresValue.idr#L85).
+You can find the Idris types supported by `expectedQuery` under the definition of [`HasDefaultType`](https://github.com/mattpolzin/pg-idris/blob/main/src/Postgres/Data/PostgresValue.idr#L107).
