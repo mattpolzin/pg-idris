@@ -86,13 +86,13 @@ pgJSONResultQuery query conn = withExecResult conn query toJson where
 
 -- Here you pass the vect of types you expect and get back results if possible.
 
-processValue : HasDefaultType expected
+processValue : Castable expected
             -> Maybe String
             -> Either String expected
 processValue hasDefault = (asDefaultType hasDefault)
 
 processCols : {0 expected : Vect cols Type}
-           -> All HasDefaultType expected 
+           -> All Castable expected 
            -> Vect cols (Maybe String)
            -> Either String (HVect expected)
 processCols [] [] = Right []
@@ -100,7 +100,7 @@ processCols (castable :: castables) (x :: xs) =
   [| (processValue castable x) :: (processCols castables xs) |]
 
 processRows : {0 expected : Vect cols Type} 
-           -> {auto castable : (All HasDefaultType expected)}
+           -> {auto castable : (All Castable expected)}
            -> Vect rows (Vect cols (Maybe String)) 
            -> Either String (Vect rows (HVect expected))
 processRows {cols} xs = traverse (processCols castable) xs 
@@ -112,7 +112,7 @@ pgResultQuery : {auto types : TypeDictionary}
              -> (expected : Vect cols Type) 
              -> (query : String) 
              -> Conn 
-             -> {auto castable : (All HasDefaultType expected)}
+             -> {auto castable : (All Castable expected)}
              -> IO (Either String (rows ** Vect rows (HVect expected)))
 pgResultQuery {cols} expected query conn = 
   do Right (rows ** receivedCols ** strings) <- pgStringResultsQuery False query conn

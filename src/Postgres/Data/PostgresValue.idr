@@ -2,12 +2,14 @@ module Postgres.Data.PostgresValue
 
 import Data.Either
 import Data.Strings
+import Data.List
+import Data.List1
 import Postgres.Data.PostgresType
 import Language.JSON
 
 public export
 data PValue : (pType : PType) -> Type where
-  Raw : (rawString : String) -> PValue t
+  Raw : (rawString : String) -> PValue pType
 
 export
 rawString : PValue t -> String
@@ -77,62 +79,83 @@ SafeCast (PValue PJson) JSON where
 
 -- TODO: UUID
 
+-- OID
+
+export
+SafeCast (PValue POid) Integer where
+  safeCast = parseInteger . rawString
+
+-- Arrays
+
+parseArray : String -> Maybe (List String)
+parseArray str = 
+  let stripped = trim str
+  in
+      do guard (("{" `isPrefixOf` stripped) && ("}" `isSuffixOf` stripped))
+         let middle = reverse . (drop 1) . reverse . (drop 1) $ unpack stripped
+         pure . forget $ pack <$> (splitOn ',' middle)
+
+export
+[SafeCastList] SafeCast (PValue from) to => SafeCast (PValue (PArray from)) (List to) where
+  safeCast (Raw rawString) = (parseArray rawString) >>= (traverse (safeCast . (Raw {pType=from})))
+
 --
 -- Default Types
 --
 
 public export
 data HasDefaultType : Type -> Type where
-  DInteger  : HasDefaultType Integer 
-  DMInteger : HasDefaultType (Maybe Integer)
-  DDouble   : HasDefaultType Double
-  DMDouble  : HasDefaultType (Maybe Double)
-  DChar     : HasDefaultType Char
-  DMChar    : HasDefaultType (Maybe Char)
-  DBoolean  : HasDefaultType Bool
-  DMBoolean : HasDefaultType (Maybe Bool)
-  DString   : HasDefaultType String
-  DMString  : HasDefaultType (Maybe String)
-  DJson     : HasDefaultType JSON
-  DMJson    : HasDefaultType (Maybe JSON)
+  DInteger  : SafeCast (PValue PInteger) Integer => HasDefaultType Integer 
+  DDouble   : SafeCast (PValue PDouble) Double => HasDefaultType Double
+  DChar     : SafeCast (PValue PChar) Char => HasDefaultType Char
+  DBoolean  : SafeCast (PValue PBoolean) Bool => HasDefaultType Bool
+  DString   : SafeCast (PValue PString) String => HasDefaultType String
+  DJson     : SafeCast (PValue PJson) JSON => HasDefaultType JSON
+  DList     : HasDefaultType to => HasDefaultType (List to)
 
-notNothing : Maybe String -> Either String String
-notNothing = maybeToEither "Unexpected null"
+safeCastImpl : HasDefaultType to -> (pType ** SafeCast (PValue pType) to)
+safeCastImpl (DInteger @{safe}) = (_ ** safe)
+safeCastImpl (DDouble @{safe}) = (_ ** safe)
+safeCastImpl (DChar @{safe}) = (_ ** safe)
+safeCastImpl (DBoolean @{safe}) = (_ ** safe)
+safeCastImpl (DString @{safe}) = (_ ** safe)
+safeCastImpl (DJson @{safe}) = (_ ** safe)
+safeCastImpl (DList @{hdt}) = let (pType1 ** safe) = safeCastImpl hdt
+                              in
+                                  ((PArray pType1) ** SafeCastList)
+
+public export
+data Castable : Type -> Type where
+  Cast      : HasDefaultType ty => Castable ty
+  CastMaybe : HasDefaultType ty => Castable (Maybe ty)
+
+notNothing : (context : String) -> Maybe String -> Either String String
+notNothing ctx = maybeToEither ("Unexpected null when looking for " ++ ctx)
 
 -- some gross repetition between the following two methods.
 -- having a bit of brain block figuring out how to combine
 -- the two right now.
-parse : {t : _} 
-     -> SafeCast (PValue t) to 
-     => (context : String) 
+parse : (pType ** SafeCast (PValue pType) to)
      -> Maybe String 
      -> Either String to
-parse ctx str = 
-  notNothing str >>= ((maybeToEither $ "Failed to parse " ++ ctx) . safeCast . Raw {t})
+parse (pType ** safe) str = 
+  let ctx = (show pType) 
+  in
+      notNothing ctx str >>= ((maybeToEither $ "Failed to parse " ++ ctx) . safeCast @{safe} . Raw)
 
-parseNullable : {t : _} 
-             -> SafeCast (PValue t) to 
-             => (context : String) 
+parseNullable : (pType ** SafeCast (PValue pType) to)
              -> Maybe String 
              -> Either String (Maybe to)
-parseNullable ctx str = 
-  case str of
-    Just s  => Just <$> ((maybeToEither $ "Failed to parse " ++ ctx) $ safeCast $ Raw {t} s)
-    Nothing => Right Nothing
+parseNullable (pType ** safe) str = 
+  let ctx = (show pType) ++ "?"
+  in
+      case str of
+        Just s  => Just <$> ((maybeToEither $ "Failed to parse " ++ ctx) $ safeCast @{safe} $ Raw s)
+        Nothing => Right Nothing
 
 ||| Turn the string coming from Postgres into its default Idris type.
 public export
-asDefaultType : HasDefaultType t -> (columnValue : Maybe String) -> Either String t
-asDefaultType DInteger  = parse "Integer" {t=PInteger}
-asDefaultType DDouble   = parse "Double"  {t=PDouble}
-asDefaultType DChar     = parse "Char"    {t=PChar}
-asDefaultType DBoolean  = parse "Boolean" {t=PBoolean}
-asDefaultType DString   = parse "String"  {t=PString}
-asDefaultType DJson     = parse "JSON"    {t=PJson}
-asDefaultType DMInteger = parseNullable "Integer?" {t=PInteger}
-asDefaultType DMDouble  = parseNullable "Double?"  {t=PDouble}
-asDefaultType DMChar    = parseNullable "Char?"    {t=PChar}
-asDefaultType DMBoolean = parseNullable "Boolean?" {t=PBoolean}
-asDefaultType DMString  = parseNullable "String?"  {t=PString}
-asDefaultType DMJson    = parseNullable "JSON?"    {t=PJson}
+asDefaultType : Castable t -> (columnValue : Maybe String) -> Either String t
+asDefaultType (Cast @{hdt}) = parse (safeCastImpl hdt)
+asDefaultType (CastMaybe @{hdt}) = parseNullable (safeCastImpl hdt)
 

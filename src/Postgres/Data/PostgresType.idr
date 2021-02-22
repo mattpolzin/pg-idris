@@ -45,6 +45,8 @@ data PType = PInteger
            | PString
            | PJson
            | PUuid
+           | POid
+           | PArray PType
            | POther String
            | PUnknown Oid
 
@@ -60,7 +62,9 @@ Show PType where
   show PString    = "String"
   show PJson      = "JSON"
   show PUuid      = "UUID"
-  show (POther x) = "Other: " ++ x
+  show POid       = "OID"
+  show (PArray t) = (show t) ++ "[]"
+  show (POther x) = "?" ++ x
   show (PUnknown (MkOid oid)) = "Oid: " ++ (show oid)
 
 public export

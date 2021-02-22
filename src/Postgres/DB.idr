@@ -193,15 +193,10 @@ export
 expectedQuery : {cols : Nat} 
              -> (expected : Vect cols Type) 
              -> (query : String) 
-             -> {auto castable : (All HasDefaultType expected)} 
+             -> {auto castable : (All Castable expected)} 
              -> Connection 
              -> IO (Either String (rows ** Vect rows (HVect expected)))
 expectedQuery expected query (MkConnection conn types) = pgResultQuery expected query conn
-
-||| Start listening for notifications on the given channel.
-export
-listen : (channel : String) -> Connection -> IO ResultStatus
-listen = pgExec . pgListen
 
 ||| Perform the given command and instead of parsing the response
 ||| just report the result status. This is useful when you don't
@@ -210,6 +205,11 @@ listen = pgExec . pgListen
 export
 perform : (command : String) -> Connection -> IO ResultStatus
 perform cmd = pgExec (\c => withExecResult c cmd (pure . pgResultStatus))
+
+||| Start listening for notifications on the given channel.
+export
+listen : (channel : String) -> Connection -> IO ResultStatus
+listen = pgExec . pgListen
 
 ||| Gets the next notification _of those sitting around locally_.
 ||| Returns `Nothing` if there are no notifications.

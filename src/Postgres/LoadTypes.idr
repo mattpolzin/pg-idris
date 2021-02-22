@@ -64,28 +64,39 @@ jsonTypeStrings = [
 uuidTypeStrings : List String
 uuidTypeStrings = ["uuid"]
 
+oidTypeStrings : List String
+oidTypeStrings = ["oid"]
+
 quote : String -> String
 quote str = '\'' <+ str +> '\''
 
 typeQuery : String
-typeQuery = "SELECT oid, typname from pg_type where typname in (" ++ supportedTypes ++ ")"
+typeQuery = "SELECT oid, typname from pg_type where typname in (" ++ queryTypes ++ ")"
   where
-    supportedTypes : String
-    supportedTypes = join "," $ quote <$> (integerTypeStrings 
-                                        ++ doubleTypeStrings 
-                                        ++ charTypeStrings
-                                        ++ booleanTypeStrings
-                                        ++ dateTypeStrings
-                                        ++ timeTypeStrings
-                                        ++ datetimeTypeStrings
-                                        ++ stringTypeStrings
-                                        ++ jsonTypeStrings
-                                        ++ uuidTypeStrings)
+    supportedTypes : List String
+    supportedTypes = integerTypeStrings 
+                  ++ doubleTypeStrings 
+                  ++ charTypeStrings
+                  ++ booleanTypeStrings
+                  ++ dateTypeStrings
+                  ++ timeTypeStrings
+                  ++ datetimeTypeStrings
+                  ++ stringTypeStrings
+                  ++ jsonTypeStrings
+                  ++ uuidTypeStrings
+                  ++ oidTypeStrings
+
+    queryTypes : String
+    queryTypes = join "," $ quote <$> (((strCons '_') <$> supportedTypes) ++ supportedTypes)
 
 parseOid : Maybe String -> Either String Oid
 parseOid oid = do str <- maybeToEither "Found null when looking for Oid" oid
                   maybeToEither "Found non-integer Oid" $
                     MkOid <$> parseInteger str
+
+arrayOrNot : (isArray : Bool) -> PType -> PType
+arrayOrNot True ty = PArray ty
+arrayOrNot False ty = ty
 
 ||| Using the groupings of Postgres string names for types that will
 ||| map to each PType, parse the given string to a PType (or POther)
@@ -93,28 +104,39 @@ parseType : String -> PType
 parseType type = case isElem True typeSearch of
                       (No _)  => POther type
                       (Yes e) => case elemToFin e of
-                                      0 => PInteger
-                                      1 => PDouble
-                                      2 => PChar
-                                      3 => PBoolean
-                                      4 => PDate
-                                      5 => PTime
-                                      6 => PDatetime
-                                      7 => PString
-                                      8 => PJson
-                                      9 => PUuid
+                                      0  => arrayOrNot (fst typeSpec) PInteger
+                                      1  => arrayOrNot (fst typeSpec) PDouble
+                                      2  => arrayOrNot (fst typeSpec) PChar
+                                      3  => arrayOrNot (fst typeSpec) PBoolean
+                                      4  => arrayOrNot (fst typeSpec) PDate
+                                      5  => arrayOrNot (fst typeSpec) PTime
+                                      6  => arrayOrNot (fst typeSpec) PDatetime
+                                      7  => arrayOrNot (fst typeSpec) PString
+                                      8  => arrayOrNot (fst typeSpec) PJson
+                                      9  => arrayOrNot (fst typeSpec) PUuid
+                                      10 => arrayOrNot (fst typeSpec) POid
   where
+    ||| First element of tuple is true if the type
+    ||| is an array. Second element of tuple is the
+    ||| OID of the non-array type.
+    typeSpec : (Bool, String)
+    typeSpec = if "_" `isPrefixOf` type
+                  then (True, drop 1 type)
+                  else (False, type)
+
     typeSearch : Vect ? Bool
-    typeSearch = elem type <$> [integerTypeStrings 
-                              , doubleTypeStrings 
-                              , charTypeStrings
-                              , booleanTypeStrings
-                              , dateTypeStrings
-                              , timeTypeStrings
-                              , datetimeTypeStrings
-                              , stringTypeStrings
-                              , jsonTypeStrings
-                              , uuidTypeStrings]
+    typeSearch = elem (snd typeSpec) <$> 
+                   [integerTypeStrings 
+                  , doubleTypeStrings 
+                  , charTypeStrings
+                  , booleanTypeStrings
+                  , dateTypeStrings
+                  , timeTypeStrings
+                  , datetimeTypeStrings
+                  , stringTypeStrings
+                  , jsonTypeStrings
+                  , uuidTypeStrings
+                  , oidTypeStrings]
 
 typeResult : Vect 2 (Maybe String) -> Either String (Oid, PType)
 typeResult [oid, type] = [(o, parseType t) | o <- parseOid oid, t <- (maybeToEither "Found null when looking for type" type)]
@@ -131,32 +153,4 @@ pgLoadTypes conn =
      Right types <- pure $ traverse typeResult resultset
        | Left err => pure $ Left $ "ERROR: " ++ err
      pure $ Right $ typeDictionary $ toList types
-
---
--- Tests
---
-
-namespace ParseTypeTests
-  ||| We don't care if it is possible to reach the Other and Unknown cases (in fact, it is not
-  ||| possible to reach the unkown case during parsing types). We do want to know we do not
-  ||| have any PTypes that are impossible to parse, though, because that would be a useless
-  ||| type.
-  |||
-  ||| Property: for all PTypes (other that POther and PUknown) there exists a string coming
-  |||           from Postgres that will parse as that type.
-  testSupportedTypesReachable : (t : PType) 
-                             -> Either (Either (x ** t = PUnknown x) (y ** t = POther y)) 
-                                       (str ** parseType str = t)
-  testSupportedTypesReachable PInteger     = Right (head integerTypeStrings  ** Refl)
-  testSupportedTypesReachable PDouble      = Right (head doubleTypeStrings   ** Refl)
-  testSupportedTypesReachable PChar        = Right (head charTypeStrings     ** Refl)
-  testSupportedTypesReachable PBoolean     = Right (head booleanTypeStrings  ** Refl)
-  testSupportedTypesReachable PDate        = Right (head dateTypeStrings     ** Refl)
-  testSupportedTypesReachable PTime        = Right (head timeTypeStrings     ** Refl)
-  testSupportedTypesReachable PDatetime    = Right (head datetimeTypeStrings ** Refl)
-  testSupportedTypesReachable PString      = Right (head stringTypeStrings   ** Refl)
-  testSupportedTypesReachable PJson        = Right (head jsonTypeStrings     ** Refl)
-  testSupportedTypesReachable PUuid        = Right (head uuidTypeStrings     ** Refl)
-  testSupportedTypesReachable (POther y)   = Left $ Right (_ ** Refl)
-  testSupportedTypesReachable (PUnknown x) = Left $ Left  (_ ** Refl)
 

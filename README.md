@@ -94,18 +94,18 @@ jsonQuery : (query : String) -> Connection -> IO (Maybe JSON)
 expectedQuery : {cols : Nat} 
              -> (expected : Vect cols Type) 
              -> (query : String) 
-             -> {auto castable : (All HasDefaultType expected)} 
+             -> {auto castable : (All Castable expected)} 
              -> Connection 
              -> IO (Either String (rows ** Vect rows (HVect expected)))
-
-||| Start listening for notifications on the given channel.
-listen : (channel : String) -> Connection -> IO ResultStatus
 
 ||| Perform the given command and instead of parsing the response
 ||| just report the result status. This is useful when you don't
 ||| care if/what the response looks like, just whether the command
 ||| worked
 perform : (command : String) -> Connection -> IO ResultStatus
+
+||| Start listening for notifications on the given channel.
+listen : (channel : String) -> Connection -> IO ResultStatus
 
 ||| Gets the next notification _of those sitting around locally_.
 ||| Returns `Nothing` if there are no notifications.

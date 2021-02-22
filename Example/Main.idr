@@ -22,19 +22,23 @@ notificationLoop : Stream (IO Notification) -> IO ()
 notificationLoop (n :: ns) = do putNotif n
                                 notificationLoop ns
 
-execStatement : Connection -> IO ()
-execStatement conn = do
+jsonStatement : Connection -> IO ()
+jsonStatement conn = do
   cmd <- getLine
   Just json <- jsonQuery cmd conn 
    | Nothing => putErr "command failed."
   putStrLn $ show json
 
+describe : String -> Connection -> IO ()
+describe query conn = do
+  Right (_ ** _ ** (headers, _)) <- stringQuery True query conn
+    | Left err => putStrLn err
+  putStrLn (join ", " $ show <$> headers)
+
 describeResult : Connection -> IO ()
 describeResult conn = do
   query <- getLine
-  Right (_ ** _ ** (headers, _)) <- stringQuery True query conn
-    | Left err => putStrLn err
-  putStrLn (join ", " $ map (\(MkHeader n t) => n ++ ": " ++ (show t)) headers)
+  describe query conn
   
 showResult : Connection -> IO ()
 showResult conn = do
@@ -51,6 +55,17 @@ showTables conn = do
   for_ rows $ \(schema :: table :: hasIndices :: []) => do
     putStrLn $ schema ++ "." ++ table ++ (if hasIndices then " (has indices)" else " (doesn't have indices)")
 
+showFunctions : Connection -> IO ()
+showFunctions conn = do
+  Right (_ ** rows) <- expectedQuery [String, List String] "select proname, proargnames from pg_proc where proargnames != '{}' limit 10" conn
+    | Left err => putStrLn err
+  for_ rows $ \(name :: args :: []) => do
+    putStrLn $ name ++ "(" ++ (join ", " args) ++ ")"
+
+describeFnTable : Connection -> IO ()
+describeFnTable conn = do
+  describe "select * from pg_proc limit 1" conn
+
 run : Connection -> IO ()
 run conn = do
   putStrLn "Connected"
@@ -62,20 +77,25 @@ run conn = do
   putStrLn "1 => Arbitrary JSON Statement"
   putStrLn "2 => Notification Loop"
   putStrLn "3 => Describe Arbitrary Result"
-  putStrLn "4 => Show Arbitrary SELECT Result Rows"
-  putStrLn "5 => Show 10 tables."
+  putStrLn "4 => Describe pg_proc table."
+  putStrLn "5 => Show Arbitrary SELECT Result Rows"
+  putStrLn "6 => Show 10 tables."
+  putStrLn "7 => Show 10 functions."
   opt <- getLine
   case (stringToNatOrZ opt) of
        1 => do putStrLn "Enter SQL: "
-               execStatement conn
+               jsonStatement conn
        2 => do putStrLn "Entering notification loop..."
                notificationLoop $ notificationStream conn
        3 => do putStrLn "Enter SQL: "
                describeResult conn
-       4 => do putStrLn "Enter SQL: "
+       4 => describeFnTable conn
+       5 => do putStrLn "Enter SQL: "
                showResult conn
-       5 => do putStrLn "Showing 10 tables..."
+       6 => do putStrLn "Showing 10 tables..."
                showTables conn
+       7 => do putStrLn "Showing 10 functions..."
+               showFunctions conn
        _ => pure ()
 
 public export
