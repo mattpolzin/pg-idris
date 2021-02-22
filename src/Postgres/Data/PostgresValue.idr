@@ -47,13 +47,13 @@ SafeCast (PValue PChar) Char where
 
 export
 SafeCast (PValue PBoolean) Bool where
-  safeCast (Raw "t") = Just True
-  safeCast (Raw "f") = Just False
-  safeCast (Raw "true") = Just True
+  safeCast (Raw "t")     = Just True
+  safeCast (Raw "f")     = Just False
+  safeCast (Raw "true")  = Just True
   safeCast (Raw "false") = Just False
-  safeCast (Raw "1") = Just True
-  safeCast (Raw "0") = Just False
-  safeCast (Raw _) = Nothing
+  safeCast (Raw "1")     = Just True
+  safeCast (Raw "0")     = Just False
+  safeCast (Raw _)       = Nothing
 
 -- TODO: Date
 
@@ -106,23 +106,23 @@ export
 public export
 data HasDefaultType : Type -> Type where
   DInteger  : SafeCast (PValue PInteger) Integer => HasDefaultType Integer 
-  DDouble   : SafeCast (PValue PDouble) Double => HasDefaultType Double
-  DChar     : SafeCast (PValue PChar) Char => HasDefaultType Char
-  DBoolean  : SafeCast (PValue PBoolean) Bool => HasDefaultType Bool
-  DString   : SafeCast (PValue PString) String => HasDefaultType String
-  DJson     : SafeCast (PValue PJson) JSON => HasDefaultType JSON
+  DDouble   : SafeCast (PValue PDouble)  Double  => HasDefaultType Double
+  DChar     : SafeCast (PValue PChar)    Char    => HasDefaultType Char
+  DBoolean  : SafeCast (PValue PBoolean) Bool    => HasDefaultType Bool
+  DString   : SafeCast (PValue PString)  String  => HasDefaultType String
+  DJson     : SafeCast (PValue PJson)    JSON    => HasDefaultType JSON
   DList     : HasDefaultType to => HasDefaultType (List to)
 
 safeCastImpl : HasDefaultType to -> (pType ** SafeCast (PValue pType) to)
 safeCastImpl (DInteger @{safe}) = (_ ** safe)
-safeCastImpl (DDouble @{safe}) = (_ ** safe)
-safeCastImpl (DChar @{safe}) = (_ ** safe)
+safeCastImpl (DDouble  @{safe}) = (_ ** safe)
+safeCastImpl (DChar    @{safe}) = (_ ** safe)
 safeCastImpl (DBoolean @{safe}) = (_ ** safe)
-safeCastImpl (DString @{safe}) = (_ ** safe)
-safeCastImpl (DJson @{safe}) = (_ ** safe)
-safeCastImpl (DList @{hdt}) = let (pType1 ** safe) = safeCastImpl hdt
-                              in
-                                  ((PArray pType1) ** SafeCastList)
+safeCastImpl (DString  @{safe}) = (_ ** safe)
+safeCastImpl (DJson    @{safe}) = (_ ** safe)
+safeCastImpl (DList    @{hdt})  = let (pType1 ** safe) = safeCastImpl hdt
+                                  in
+                                      (PArray pType1 ** SafeCastList)
 
 public export
 data Castable : Type -> Type where
@@ -156,6 +156,6 @@ parseNullable (pType ** safe) str =
 ||| Turn the string coming from Postgres into its default Idris type.
 public export
 asDefaultType : Castable t -> (columnValue : Maybe String) -> Either String t
-asDefaultType (Cast @{hdt}) = parse (safeCastImpl hdt)
+asDefaultType (Cast      @{hdt}) = parse (safeCastImpl hdt)
 asDefaultType (CastMaybe @{hdt}) = parseNullable (safeCastImpl hdt)
 
