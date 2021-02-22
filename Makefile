@@ -20,3 +20,9 @@ clean:
 install:
 	$(IDRIS) --install $(PACKAGE)
 	
+.PHONY: test
+
+test:
+	cd tests && \
+	$(IDRIS) --build tests.ipkg && \
+	./build/exec/test $(IDRIS) --interactive

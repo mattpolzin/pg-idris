@@ -1,0 +1,8 @@
+package tests
+
+modules = Main
+
+executable = test
+main = Main
+
+depends = contrib, pg-idris
