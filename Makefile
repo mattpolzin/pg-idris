@@ -24,5 +24,6 @@ install:
 
 test:
 	cd tests && \
-	$(IDRIS) --build tests.ipkg && \
+	$(IDRIS) --build pg-idris-tests.ipkg && \
+	$(IDRIS) --install pg-idris-tests.ipkg && \
 	./build/exec/test $(IDRIS) --interactive
