@@ -18,7 +18,7 @@ jobs:
 
     env:
       IDRIS2_CG: chez
-      IDRIS2_TESTS_CG: chez
+      SCHEME: scheme
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
 
     steps:
