@@ -110,11 +110,11 @@ data ConnectionState : DBState -> Type where
 
 runDatabase' : HasIO io => ConnectionState s1 -> Database a s1 s2Fn -> io $ (x : a ** ConnectionState (s2Fn x))
 runDatabase' CDisconnected (DBOpen url) = do conn <- pgOpen url
-                                             Right types <- pgLoadTypes conn
-                                               | Left err => pure (Failed err ** CDisconnected)
-                                             pure $ case openResult conn of
-                                                         OK => (OK ** CConnected (MkConnection conn types))
-                                                         Failed err => (Failed err ** CDisconnected)
+                                             case openResult conn of
+                                                  OK => do Right types <- pgLoadTypes conn
+                                                             | Left err => pure (Failed err ** CDisconnected)
+                                                           pure (OK ** CConnected (MkConnection conn types))
+                                                  Failed err => pure (Failed err ** CDisconnected)
 runDatabase' (CConnected conn) DBClose = do pgClose (getConn conn)
                                             pure $ (() ** CDisconnected)
 runDatabase' (CConnected conn) (Exec fn) = liftIO $ do res <- fn conn
