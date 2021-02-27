@@ -1,0 +1,36 @@
+name: pg-idris tests
+on: push
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      IDRIS2_CG: chez
+      IDRIS2_TESTS_CG: chez
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install build dependencies
+        run: |
+          sudo apt-get install -y chezscheme
+          echo "::add-path::$HOME/.idris2/bin"
+      - name: Build Idris from bootstrap
+        run: mkdir Idris2 && git clone https://github.com/idris-lang/Idris2.git && cd Idris2 && make bootstrap && make install
+      - name: Build pg-idris
+        run: make && make install
+      - name: Test pg-idris
+        run: make test

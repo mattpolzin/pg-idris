@@ -1,3 +1,4 @@
+INTERACTIVE ?= --interactive
 
 IDRIS := idris2
 
@@ -26,4 +27,4 @@ test:
 	cd tests && \
 	$(IDRIS) --build pg-idris-tests.ipkg && \
 	$(IDRIS) --install pg-idris-tests.ipkg && \
-	./build/exec/test $(IDRIS) --interactive
+	./build/exec/test $(IDRIS) $(INTERACTIVE)
