@@ -2,7 +2,7 @@
 #ifndef _PG_IDRIS_HELPERS_H
 #define _PG_IDRIS_HELPERS_H
 
-#include "libpq-fe.h"
+#include <libpq-fe.h>
 
 int is_null(void* ref);
 
