@@ -27,10 +27,10 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get install -y chezscheme
-          echo "::add-path::$HOME/.idris2/bin"
+          echo "$HOME/.idris2/bin" >> $GITHUB_PATH
       - name: Build Idris from bootstrap
         run: mkdir Idris2 && git clone https://github.com/idris-lang/Idris2.git && cd Idris2 && make bootstrap && make install
       - name: Build pg-idris
         run: make && make install
       - name: Test pg-idris
-        run: make test
+        run: make test INTERACTIVE=''
