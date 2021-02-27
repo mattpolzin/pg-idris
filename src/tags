@@ -5,6 +5,7 @@
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.8	//
 (.types)	Postgres/Data/PostgresType.idr	/^(.types) : TypeDictionary -> List (Oid, PType)$/;"	d
+(>>)	Postgres/DB.idr	/^(>>) : (db : Database a s1 (const s2)) -> Database b s2 s3Fn -> Database b s1 s3Fn$/;"	d
 (>>=)	Postgres/DB.idr	/^(>>=) : (db : Database a s1 s2Fn) -> (f : (x : a) -> Database b (s2Fn x) s3Fn) -> Database b s1 s3Fn$/;"	d
 (processValue	Postgres/Query.idr	/^  [| (processValue castable x) :: (processCols castables xs) |]$/;"	c
 AUTH_OK	Postgres/Data/ConnectionStatus.idr	/^                      | AUTH_OK$/;"	c
@@ -19,6 +20,9 @@ COMMAND_OK	Postgres/Data/ResultStatus.idr	/^                  | COMMAND_OK$/;"	c
 COPY_BOTH	Postgres/Data/ResultStatus.idr	/^                  | COPY_BOTH$/;"	c
 COPY_IN	Postgres/Data/ResultStatus.idr	/^                  | COPY_IN$/;"	c
 COPY_OUT	Postgres/Data/ResultStatus.idr	/^                  | COPY_OUT$/;"	c
+Cast	Postgres/Data/PostgresValue.idr	/^  Cast      : HasDefaultType ty => Castable ty$/;"	d
+CastMaybe	Postgres/Data/PostgresValue.idr	/^  CastMaybe : HasDefaultType ty => Castable (Maybe ty)$/;"	d
+Castable	Postgres/Data/PostgresValue.idr	/^data Castable : Type -> Type where$/;"	t
 Closed	Postgres/DB.idr	/^data DBState = Open | Closed$/;"	c
 Conn	Postgres/Data/Conn.idr	/^data Conn : Type where$/;"	t
 Connection	Postgres/DB.idr	/^data Connection : Type where$/;"	t
@@ -27,19 +31,14 @@ ConnectionStatus	Postgres/Data/ConnectionStatus.idr	/^data ConnectionStatus = OK
 DBClose	Postgres/DB.idr	/^  DBClose : Database () Open (const Closed)$/;"	d
 DBOpen	Postgres/DB.idr	/^  DBOpen  : (url : String) -> Database OpenResult Closed OpenResultState$/;"	d
 DBState	Postgres/DB.idr	/^data DBState = Open | Closed$/;"	t
-DBoolean	Postgres/Data/PostgresValue.idr	/^  DBoolean  : HasDefaultType Bool$/;"	d
-DChar	Postgres/Data/PostgresValue.idr	/^  DChar     : HasDefaultType Char$/;"	d
-DDouble	Postgres/Data/PostgresValue.idr	/^  DDouble   : HasDefaultType Double$/;"	d
+DBoolean	Postgres/Data/PostgresValue.idr	/^  DBoolean  : SafeCast (PValue PBoolean) Bool    => HasDefaultType Bool$/;"	d
+DChar	Postgres/Data/PostgresValue.idr	/^  DChar     : SafeCast (PValue PChar)    Char    => HasDefaultType Char$/;"	d
+DDouble	Postgres/Data/PostgresValue.idr	/^  DDouble   : SafeCast (PValue PDouble)  Double  => HasDefaultType Double$/;"	d
 DIO	Postgres/DB.idr	/^  DIO      : IO a -> Database a s1 (const s1)$/;"	d
-DInteger	Postgres/Data/PostgresValue.idr	/^  DInteger  : HasDefaultType Integer $/;"	d
-DJson	Postgres/Data/PostgresValue.idr	/^  DJson     : HasDefaultType JSON$/;"	d
-DMBoolean	Postgres/Data/PostgresValue.idr	/^  DMBoolean : HasDefaultType (Maybe Bool)$/;"	d
-DMChar	Postgres/Data/PostgresValue.idr	/^  DMChar    : HasDefaultType (Maybe Char)$/;"	d
-DMDouble	Postgres/Data/PostgresValue.idr	/^  DMDouble  : HasDefaultType (Maybe Double)$/;"	d
-DMInteger	Postgres/Data/PostgresValue.idr	/^  DMInteger : HasDefaultType (Maybe Integer)$/;"	d
-DMJson	Postgres/Data/PostgresValue.idr	/^  DMJson    : HasDefaultType (Maybe JSON)$/;"	d
-DMString	Postgres/Data/PostgresValue.idr	/^  DMString  : HasDefaultType (Maybe String)$/;"	d
-DString	Postgres/Data/PostgresValue.idr	/^  DString   : HasDefaultType String$/;"	d
+DInteger	Postgres/Data/PostgresValue.idr	/^  DInteger  : SafeCast (PValue PInteger) Integer => HasDefaultType Integer $/;"	d
+DJson	Postgres/Data/PostgresValue.idr	/^  DJson     : SafeCast (PValue PJson)    JSON    => HasDefaultType JSON$/;"	d
+DList	Postgres/Data/PostgresValue.idr	/^  DList     : HasDefaultType to => HasDefaultType (List to)$/;"	d
+DString	Postgres/Data/PostgresValue.idr	/^  DString   : SafeCast (PValue PString)  String  => HasDefaultType String$/;"	d
 Database	Postgres/DB.idr	/^data Database : (ty : Type) -> (s1 : DBState) -> (s2Fn : (ty -> DBState)) -> Type where$/;"	t
 EMPTY_QUERY	Postgres/Data/ResultStatus.idr	/^data ResultStatus = EMPTY_QUERY$/;"	c
 Exec	Postgres/DB.idr	/^  Exec    : (fn : Connection -> IO a) -> Database a Open (const Open)$/;"	d
@@ -68,6 +67,7 @@ Oid	Postgres/Data/PostgresType.idr	/^data Oid : Type where$/;"	t
 Open	Postgres/DB.idr	/^data DBState = Open | Closed$/;"	c
 OpenResult	Postgres/DB.idr	/^data OpenResult = OK | Failed String$/;"	t
 OpenResultState	Postgres/DB.idr	/^OpenResultState : OpenResult -> DBState$/;"	d
+PArray	Postgres/Data/PostgresType.idr	/^           | PArray PType$/;"	c
 PBoolean	Postgres/Data/PostgresType.idr	/^           | PBoolean$/;"	c
 PChar	Postgres/Data/PostgresType.idr	/^           | PChar$/;"	c
 PColType	Postgres/Data/PostgresType.idr	/^data PColType : PType -> Type where$/;"	t
@@ -79,6 +79,7 @@ PGnotify	Postgres/Notification.idr	/^PGnotify : Type$/;"	d
 PGresult	Postgres/Result.idr	/^data PGresult : Type$/;"	t
 PInteger	Postgres/Data/PostgresType.idr	/^data PType = PInteger$/;"	c
 PJson	Postgres/Data/PostgresType.idr	/^           | PJson$/;"	c
+POid	Postgres/Data/PostgresType.idr	/^           | POid$/;"	c
 POther	Postgres/Data/PostgresType.idr	/^           | POther String$/;"	c
 PString	Postgres/Data/PostgresType.idr	/^           | PString$/;"	c
 PTime	Postgres/Data/PostgresType.idr	/^           | PTime$/;"	c
@@ -87,7 +88,7 @@ PUnknown	Postgres/Data/PostgresType.idr	/^           | PUnknown Oid$/;"	c
 PUuid	Postgres/Data/PostgresType.idr	/^           | PUuid$/;"	c
 PValue	Postgres/Data/PostgresValue.idr	/^data PValue : (pType : PType) -> Type where$/;"	t
 Pure	Postgres/DB.idr	/^  Pure    : (x : a) -> Database a (stateFn x) stateFn$/;"	d
-Raw	Postgres/Data/PostgresValue.idr	/^  Raw : (rawString : String) -> PValue t$/;"	d
+Raw	Postgres/Data/PostgresValue.idr	/^  Raw : (rawString : String) -> PValue pType$/;"	d
 Result	Postgres/Result.idr	/^data Result : Type where$/;"	t
 ResultStatus	Postgres/Data/ResultStatus.idr	/^data ResultStatus = EMPTY_QUERY$/;"	t
 SETENV	Postgres/Data/ConnectionStatus.idr	/^                      | SETENV$/;"	c
@@ -99,7 +100,8 @@ TUPLES_OK	Postgres/Data/ResultStatus.idr	/^                  | TUPLES_OK$/;"	c
 Text	Postgres/Data/PostgresType.idr	/^data FormatCode = Text | Binary$/;"	c
 TupleResult	Postgres/Result.idr	/^data TupleResult : (rows: Nat) -> (cols: Nat) -> Type where$/;"	t
 TypeDictionary	Postgres/Data/PostgresType.idr	/^data TypeDictionary : Type where$/;"	t
-asDefaultType	Postgres/Data/PostgresValue.idr	/^asDefaultType : HasDefaultType t -> (columnValue : Maybe String) -> Either String t$/;"	d
+arrayOrNot	Postgres/LoadTypes.idr	/^arrayOrNot : (isArray : Bool) -> PType -> PType$/;"	d
+asDefaultType	Postgres/Data/PostgresValue.idr	/^asDefaultType : Castable t -> (columnValue : Maybe String) -> Either String t$/;"	d
 booleanTypeStrings	Postgres/LoadTypes.idr	/^booleanTypeStrings : List String$/;"	d
 channel	Postgres/Notification.idr	/^  channel : String$/;"	d
 charTypeStrings	Postgres/LoadTypes.idr	/^charTypeStrings : List String$/;"	d
@@ -139,7 +141,7 @@ maybeFirstRowCol	Postgres/Query.idr	/^maybeFirstRowCol : {r,c : Nat} -> TupleRes
 name	Postgres/Result.idr	/^  name : String$/;"	d
 next	Postgres/Notification.idr	/^  next : IO Notification$/;"	d
 nextNotification	Postgres/DB.idr	/^nextNotification : Connection -> IO (Maybe Notification)$/;"	d
-notNothing	Postgres/Data/PostgresValue.idr	/^notNothing : Maybe String -> Either String String$/;"	d
+notNothing	Postgres/Data/PostgresValue.idr	/^notNothing : (context : String) -> Maybe String -> Either String String$/;"	d
 notification	Postgres/Notification.idr	/^notification : PGnotify -> Notification$/;"	d
 notificationChannel	Postgres/Notification.idr	/^notificationChannel : PGnotify -> String$/;"	d
 notificationPayload	Postgres/Notification.idr	/^notificationPayload : PGnotify -> String$/;"	d
@@ -149,11 +151,13 @@ nullable	Postgres/Data/PostgresType.idr	/^nullable : PColType t -> Bool$/;"	d
 nullableResultRow	Postgres/Result.idr	/^nullableResultRow : {cols: Nat} -> (res : TupleResult rows cols) -> (row: Fin rows) -> (Vect cols (Lazy (Maybe String)))$/;"	d
 o	Postgres/LoadTypes.idr	/^typeResult [oid, type] = [(o, parseType t) | o <- parseOid oid, t <- (maybeToEither "Found null when looking for type" type)]$/;"	c
 oidToInt	Postgres/Data/PostgresType.idr	/^oidToInt : Oid -> Int$/;"	d
+oidTypeStrings	Postgres/LoadTypes.idr	/^oidTypeStrings : List String$/;"	d
 openDatabase	Postgres/DB.idr	/^openDatabase : (url : String) -> Database OpenResult Closed OpenResultState$/;"	d
 openResult	Postgres/DB.idr	/^openResult : Conn -> OpenResult$/;"	d
 pType	Postgres/Data/PostgresType.idr	/^pType : PColType t -> PType$/;"	d
-parse	Postgres/Data/PostgresValue.idr	/^parse : {t : _} $/;"	d
-parseNullable	Postgres/Data/PostgresValue.idr	/^parseNullable : {t : _} $/;"	d
+parse	Postgres/Data/PostgresValue.idr	/^parse : (pType ** SafeCast (PValue pType) to)$/;"	d
+parseArray	Postgres/Data/PostgresValue.idr	/^parseArray : String -> Maybe (List String)$/;"	d
+parseNullable	Postgres/Data/PostgresValue.idr	/^parseNullable : (pType ** SafeCast (PValue pType) to)$/;"	d
 parseOid	Postgres/LoadTypes.idr	/^parseOid : Maybe String -> Either String Oid$/;"	d
 parseType	Postgres/LoadTypes.idr	/^parseType : String -> PType$/;"	d
 payload	Postgres/Notification.idr	/^  payload : String$/;"	d
@@ -204,8 +208,9 @@ prim__isNullNotifyStruct	Postgres/Notification.idr	/^prim__isNullNotifyStruct : 
 prim__string_value	Postgres/Utility.idr	/^prim__string_value : Ptr String -> String$/;"	d
 processCols	Postgres/Query.idr	/^processCols : {0 expected : Vect cols Type}$/;"	d
 processRows	Postgres/Query.idr	/^processRows : {0 expected : Vect cols Type} $/;"	d
-processValue	Postgres/Query.idr	/^processValue : HasDefaultType expected$/;"	d
+processValue	Postgres/Query.idr	/^processValue : Castable expected$/;"	d
 pure	Postgres/DB.idr	/^pure : (x : a) -> Database a (stateFn x) stateFn$/;"	d
+queryTypes	Postgres/LoadTypes.idr	/^    queryTypes : String$/;"	d
 quote	Postgres/LoadTypes.idr	/^quote : String -> String$/;"	d
 rawString	Postgres/Data/PostgresValue.idr	/^rawString : PValue t -> String$/;"	d
 resultColCount	Postgres/Result.idr	/^resultColCount : Result -> Nat$/;"	d
@@ -219,12 +224,12 @@ resultValueIsNull	Postgres/Result.idr	/^resultValueIsNull : TupleResult r c -> (
 rows	Postgres/Query.idr	/^rows : {rows, cols : Nat} -> TupleResult rows cols -> Vect rows (Vect cols (Maybe String))$/;"	d
 runDatabase'	Postgres/DB.idr	/^runDatabase' : HasIO io => ConnectionState s1 -> Database a s1 s2Fn -> io $ (x : a ** ConnectionState (s2Fn x))$/;"	d
 safeCast	Postgres/Data/PostgresValue.idr	/^  safeCast : ty1 -> Maybe ty2$/;"	d
+safeCastImpl	Postgres/Data/PostgresValue.idr	/^safeCastImpl : HasDefaultType to -> (pType ** SafeCast (PValue pType) to)$/;"	d
 showTuple	Postgres/Data/PostgresType.idr	/^      showTuple : (Oid, PType) -> String$/;"	d
 stringQuery	Postgres/DB.idr	/^stringQuery : (header : Bool) -> (query : String) -> Connection -> IO (Either String (StringResultset header))$/;"	d
 stringResults	Postgres/Query.idr	/^    stringResults : Result -> IO (Either String (StringResultset header))$/;"	d
 stringTypeStrings	Postgres/LoadTypes.idr	/^stringTypeStrings : List String$/;"	d
-supportedTypes	Postgres/LoadTypes.idr	/^    supportedTypes : String$/;"	d
-testSupportedTypesReachable	Postgres/LoadTypes.idr	/^  testSupportedTypesReachable : (t : PType) $/;"	d
+supportedTypes	Postgres/LoadTypes.idr	/^    supportedTypes : List String$/;"	d
 timeTypeStrings	Postgres/LoadTypes.idr	/^timeTypeStrings : List String$/;"	d
 toJson	Postgres/Query.idr	/^ toJson : Result -> IO (Maybe JSON)$/;"	d
 tupleResult	Postgres/Result.idr	/^tupleResult : (res: Result) -> Maybe (TupleResult (resultRowCount res) (resultColCount res))$/;"	d
@@ -233,6 +238,7 @@ typeDictionary	Postgres/Data/PostgresType.idr	/^typeDictionary : List (Oid, PTyp
 typeQuery	Postgres/LoadTypes.idr	/^typeQuery : String$/;"	d
 typeResult	Postgres/LoadTypes.idr	/^typeResult : Vect 2 (Maybe String) -> Either String (Oid, PType)$/;"	d
 typeSearch	Postgres/LoadTypes.idr	/^    typeSearch : Vect ? Bool$/;"	d
+typeSpec	Postgres/LoadTypes.idr	/^    typeSpec : (Bool, String)$/;"	d
 types	Postgres/Data/PostgresType.idr	/^types : TypeDictionary -> List (Oid, PType)$/;"	d
 unsafeExec	Postgres/DB.idr	/^unsafeExec : (Conn -> IO a) -> Database a Open (const Open)$/;"	d
 uuidTypeStrings	Postgres/LoadTypes.idr	/^uuidTypeStrings : List String$/;"	d
@@ -244,10 +250,8 @@ withConn	Postgres/DB.idr	/^withConn : HasIO io => (pgUrl: String) -> (onOpen: Co
 withDB	Postgres/DB.idr	/^withDB : HasIO io => (url : String) -> Database a Open (const Open) -> io $ Either String a$/;"	d
 withExecResult	Postgres/Exec.idr	/^withExecResult : Conn -> (command : String) -> (f : Result -> IO b) -> IO b$/;"	d
 withResult	Postgres/Result.idr	/^withResult : ResultProducer source a => source -> a -> (Result -> IO b) -> IO b$/;"	d
-||	Postgres/LoadTypes.idr	/^  |||           from Postgres that will parse as that type.$/;"	c
-||	Postgres/LoadTypes.idr	/^  ||| Property: for all PTypes (other that POther and PUknown) there exists a string coming$/;"	c
-||	Postgres/LoadTypes.idr	/^  ||| We don't care if it is possible to reach the Other and Unknown cases (in fact, it is not$/;"	c
-||	Postgres/LoadTypes.idr	/^  ||| have any PTypes that are impossible to parse, though, because that would be a useless$/;"	c
-||	Postgres/LoadTypes.idr	/^  ||| possible to reach the unkown case during parsing types). We do want to know we do not$/;"	c
-||	Postgres/LoadTypes.idr	/^  ||| type.$/;"	c
-||	Postgres/LoadTypes.idr	/^  |||$/;"	c
+||	Postgres/LoadTypes.idr	/^    ||| First element of tuple is true if the type$/;"	c
+||	Postgres/LoadTypes.idr	/^    ||| a leading underscore).$/;"	c
+||	Postgres/LoadTypes.idr	/^    ||| are named the same as non-array types but with$/;"	c
+||	Postgres/LoadTypes.idr	/^    ||| is an array. Second element of tuple is the$/;"	c
+||	Postgres/LoadTypes.idr	/^    ||| name of the non-array type (because array types$/;"	c

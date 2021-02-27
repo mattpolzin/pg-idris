@@ -92,16 +92,17 @@ export
 (>>=) = Bind
 
 export
+(>>) : (db : Database a s1 (const s2)) -> Database b s2 s3Fn -> Database b s1 s3Fn
+db >> db2 = db >>= (\_ => db2)
+
+
+export
 pure : (x : a) -> Database a (stateFn x) stateFn
 pure = Pure
 
 export
 liftIO' : IO a -> Database a s1 (const s1)
 liftIO' = DIO
-
-export
-initDatabase : Database () Closed (const Closed)
-initDatabase = pure ()
 
 data ConnectionState : DBState -> Type where
   CConnected : (conn : Connection) -> ConnectionState Open
@@ -128,6 +129,10 @@ runDatabase' cs (DIO io) = do v <- liftIO io
 export
 evalDatabase : HasIO io => Database a Closed (const Closed) -> io a
 evalDatabase db = pure $ fst !(runDatabase' CDisconnected db)
+
+export
+initDatabase : Database () Closed (const Closed)
+initDatabase = pure ()
 
 export
 openDatabase : (url : String) -> Database OpenResult Closed OpenResultState
