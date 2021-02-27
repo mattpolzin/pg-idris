@@ -53,13 +53,8 @@ data OpenResult = OK | Failed String
 
 public export
 OpenResultState : OpenResult -> DBState
-OpenResultState = \case OK         => Open
-                        (Failed _) => Closed
-
-openResult : Conn -> OpenResult
-openResult conn = case (pgStatus conn) of
-                       OK => OK
-                       x  => Failed (show x)
+OpenResultState = \case OK          => Open
+                        (Failed _)  => Closed
 
 export
 data Connection : Type where
@@ -108,9 +103,15 @@ data ConnectionState : DBState -> Type where
   CConnected : (conn : Connection) -> ConnectionState Open
   CDisconnected : ConnectionState Closed
 
+openResult : HasIO io => Conn -> io OpenResult
+openResult conn = case (pgStatus conn) of
+                       OK => pure OK
+                       x  => Failed <$> pgErrorMessage conn
+
 runDatabase' : HasIO io => ConnectionState s1 -> Database a s1 s2Fn -> io $ (x : a ** ConnectionState (s2Fn x))
 runDatabase' CDisconnected (DBOpen url) = do conn <- pgOpen url
-                                             case openResult conn of
+                                             status <- openResult conn
+                                             case status of
                                                   OK => do Right types <- pgLoadTypes conn
                                                              | Left err => pure (Failed err ** CDisconnected)
                                                            pure (OK ** CConnected (MkConnection conn types))

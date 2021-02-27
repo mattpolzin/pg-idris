@@ -56,6 +56,14 @@ export
 pgStatus : Conn -> ConnectionStatus
 pgStatus (MkConn conn) = connectionStatus $ prim__dbStatus conn
 
+%foreign helper "connErrorMessage"
+prim__dbErrorMessage : Ptr PGconn -> PrimIO String
+
+||| Get an error message from Postgres when something goes wrong.
+export
+pgErrorMessage : HasIO io => Conn -> io String
+pgErrorMessage (MkConn conn) = primIO $ prim__dbErrorMessage conn
+
 --
 -- Consume Input from Server
 --

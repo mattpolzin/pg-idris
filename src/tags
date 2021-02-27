@@ -163,6 +163,7 @@ parseType	Postgres/LoadTypes.idr	/^parseType : String -> PType$/;"	d
 payload	Postgres/Notification.idr	/^  payload : String$/;"	d
 perform	Postgres/DB.idr	/^perform : (command : String) -> Connection -> IO ResultStatus$/;"	d
 pgClose	Postgres/DB/Core.idr	/^pgClose : HasIO io => Conn -> io ()$/;"	d
+pgErrorMessage	Postgres/DB/Core.idr	/^pgErrorMessage : HasIO io => Conn -> io String$/;"	d
 pgExec	Postgres/DB.idr	/^pgExec : (Conn -> IO a) -> Connection -> IO a$/;"	d
 pgExec	Postgres/Exec.idr	/^     pgExec : Conn -> (command: String) -> IO (Ptr PGresult)$/;"	d
 pgJSONResultQuery	Postgres/Query.idr	/^pgJSONResultQuery : (query: String) -> Conn -> IO (Maybe JSON)$/;"	d
@@ -188,6 +189,7 @@ pgWait	Postgres/DB/Wait.idr	/^pgWait : Conn -> IO Bool$/;"	d
 prim__dbClearResult	Postgres/Result.idr	/^prim__dbClearResult : Ptr PGresult -> PrimIO ()$/;"	d
 prim__dbClose	Postgres/DB/Core.idr	/^prim__dbClose : Ptr PGconn -> PrimIO ()$/;"	d
 prim__dbConsumeInput	Postgres/DB/Core.idr	/^prim__dbConsumeInput : Ptr PGconn -> PrimIO Int$/;"	d
+prim__dbErrorMessage	Postgres/DB/Core.idr	/^prim__dbErrorMessage : Ptr PGconn -> PrimIO String$/;"	d
 prim__dbExec	Postgres/Exec.idr	/^prim__dbExec : Ptr PGconn -> (command: String) -> PrimIO (Ptr PGresult)$/;"	d
 prim__dbFreeNotifyStruct	Postgres/Notification.idr	/^prim__dbFreeNotifyStruct : Ptr PGnotify -> PrimIO ()$/;"	d
 prim__dbGetNextNotification	Postgres/Notification.idr	/^prim__dbGetNextNotification : Ptr PGconn -> PrimIO (Ptr PGnotify)$/;"	d
