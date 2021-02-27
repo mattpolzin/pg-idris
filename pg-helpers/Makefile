@@ -8,9 +8,11 @@ LDFLAGS = -L$(shell pg_config --libdir) -lpq
 CPPFLAGS = -I$(shell pg_config --includedir)
 LD_LIBRARY_PATH += $(shell pg_config --includedir)
 
-DYLIB_WORKAROUND = @echo Skipping Darwin workaround
 ifeq (,$(findstring darwin,$(OSTYPE)))
  DYLIB_WORKAROUND = cp "${INSTALLDIR}/${TARGET}" "${INSTALLDIR}/${TARGET}.dylib"
+else
+ DYLIB_WORKAROUND = cp "${INSTALLDIR}/${TARGET}" "${INSTALLDIR}/${TARGET}.so"
+ LDFLAGS += -fuse-ld=gold
 endif
 
 SRCS = $(wildcard *.c)

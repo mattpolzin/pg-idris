@@ -33,4 +33,6 @@ jobs:
       - name: Build pg-idris
         run: make && make install
       - name: Test pg-idris
-        run: make test INTERACTIVE=''
+        run: |
+          echo "$LD_LIBRARY_PATH:$(idris2 --libdir)/pg-idris/lib" >> $GITHUB_ENV && \
+          make test INTERACTIVE=''
