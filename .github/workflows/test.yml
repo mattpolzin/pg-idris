@@ -19,7 +19,7 @@ jobs:
     env:
       IDRIS2_CG: chez
       SCHEME: scheme
-      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      TEST_DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres
 
     steps:
       - name: Checkout
