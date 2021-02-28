@@ -19,16 +19,18 @@ Currently supports:
 
 ## Dependencies
 
-This library currently depends on bleeding edge of the Idris 2 project. As of this writing, I believe the library will build against Idris 2 v0.3.0, but at any time in the future you might need to build and install Idris 2 from its `master` branch in order to build and use this library.
+This library currently depends on bleeding edge of the Idris 2 project. At any time you might need to build and install Idris 2 from its `master` branch in order to build and use this library.
 
-You also need `libpq` (the Postgres C client implementation) installed.
+You also need `libpq` (the Postgres C client implementation) installed to run apps using this library and `libpq-dev` to build this library from source.
+
+To build and install this library you will need to have `clang` on MacOS (comes out of box) and `gcc` on Linux (depending on the distro might need to be installed).
 
 ## Usage
 
 You can take a look at the `Main.idr` and `example.ipkg` in the Example folder for an example of using the library. 
 
 ### Install the library
-Run `make install` to build and install the library (including a workaround I found I needed on OS X that copies the library output to a `.dylib`).
+Run `make install` to build and install the library. Make sure that the libraries install directory (`$(idris2 --libpath)/pg-idris/lib`) is in your `LD_LIBRARY_PATH` environment variable so that pg-idris can be found when building an app that uses it. An alternative is to copy the contents of that lib directory into the directory of any executable you build that depends on it.
 
 ### Include the package
 When running `idris2`, pass the `-p pg-idris` and `-p contrib` command line arguments.
