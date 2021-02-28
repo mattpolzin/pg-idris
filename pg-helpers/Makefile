@@ -8,7 +8,9 @@ LDFLAGS = -L$(shell pg_config --libdir) -lpq
 CPPFLAGS = -I$(shell pg_config --includedir)
 LD_LIBRARY_PATH += $(shell pg_config --includedir)
 
-ifeq (,$(findstring darwin,$(OSTYPE)))
+CC_VERSION = $(shell $(CC) --version)
+
+ifeq ($(findstring clang,$(CC_VERSION)),clang)
  DYLIB_WORKAROUND = cp "${INSTALLDIR}/${TARGET}" "${INSTALLDIR}/${TARGET}.dylib"
 else
  DYLIB_WORKAROUND = cp "${INSTALLDIR}/${TARGET}" "${INSTALLDIR}/${TARGET}.so"
