@@ -1,3 +1,4 @@
+INTERACTIVE ?= --interactive
 
 IDRIS := idris2
 
@@ -20,3 +21,10 @@ clean:
 install:
 	$(IDRIS) --install $(PACKAGE)
 	
+.PHONY: test
+
+test:
+	cd tests && \
+	$(IDRIS) --build pg-idris-tests.ipkg && \
+	$(IDRIS) --install pg-idris-tests.ipkg && \
+	./build/exec/test $(IDRIS) $(INTERACTIVE)

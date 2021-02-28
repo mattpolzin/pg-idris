@@ -1,0 +1,9 @@
+package pg-idris-tests
+
+modules = Main,
+          TestLib
+
+executable = test
+main = Main
+
+depends = contrib, pg-idris

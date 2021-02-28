@@ -84,7 +84,8 @@ pgListen channel conn = withExecResult conn ("LISTEN " ++ channel) (\r => pure $
 |||  missed.
 export
 pgNextNotification : Conn -> IO (Maybe Notification)
-pgNextNotification (MkConn conn) = do pgConsumeInput (MkConn conn)
+pgNextNotification (MkConn conn) = do True <- pgConsumeInput (MkConn conn)
+                                        | False => pure Nothing
                                       notify <- primIO $ prim__dbGetNextNotification conn
                                       if isNullNotification notify
                                          then pure $ Nothing
@@ -99,7 +100,8 @@ pgNextNotification (MkConn conn) = do pgConsumeInput (MkConn conn)
 ||| then checks if there is a new notification
 ||| then either returns a notification or cycles
 cycle : Conn -> IO Notification
-cycle conn = do pgWait conn
+cycle conn = do True <- pgWait conn
+                  | False => cycle conn
                 Nothing <- pgNextNotification conn
                  | Just n => pure n
                 cycle conn

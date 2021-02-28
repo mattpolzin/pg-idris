@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <string.h>
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif
@@ -24,6 +25,20 @@ int is_null(void* ref) {
  */
 char* string_value(void* s) {
 	return (char*)s;
+}
+
+/**
+ * We are not supposed to free the result
+ * of PQerrorMessage but Idris insists on
+ * freeing any char* it is passed so this
+ * function exists to copy the Idris error
+ * so it can be freed :/ 
+ */
+char *connErrorMessage(const PGconn *conn) {
+	char * orig = PQerrorMessage(conn);
+	char * copy = malloc(strlen(orig) + 1); 
+	strcpy(copy, orig);
+	return copy;
 }
 
 /**

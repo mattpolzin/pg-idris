@@ -53,13 +53,8 @@ data OpenResult = OK | Failed String
 
 public export
 OpenResultState : OpenResult -> DBState
-OpenResultState = \case OK         => Open
-                        (Failed _) => Closed
-
-openResult : Conn -> OpenResult
-openResult conn = case (pgStatus conn) of
-                       OK => OK
-                       x  => Failed (show x)
+OpenResultState = \case OK          => Open
+                        (Failed _)  => Closed
 
 export
 data Connection : Type where
@@ -92,6 +87,11 @@ export
 (>>=) = Bind
 
 export
+(>>) : (db : Database a s1 (const s2)) -> Database b s2 s3Fn -> Database b s1 s3Fn
+db >> db2 = db >>= (\_ => db2)
+
+
+export
 pure : (x : a) -> Database a (stateFn x) stateFn
 pure = Pure
 
@@ -99,21 +99,23 @@ export
 liftIO' : IO a -> Database a s1 (const s1)
 liftIO' = DIO
 
-export
-initDatabase : Database () Closed (const Closed)
-initDatabase = pure ()
-
 data ConnectionState : DBState -> Type where
   CConnected : (conn : Connection) -> ConnectionState Open
   CDisconnected : ConnectionState Closed
 
+openResult : HasIO io => Conn -> io OpenResult
+openResult conn = case (pgStatus conn) of
+                       OK => pure OK
+                       x  => Failed <$> pgErrorMessage conn
+
 runDatabase' : HasIO io => ConnectionState s1 -> Database a s1 s2Fn -> io $ (x : a ** ConnectionState (s2Fn x))
 runDatabase' CDisconnected (DBOpen url) = do conn <- pgOpen url
-                                             Right types <- pgLoadTypes conn
-                                               | Left err => pure (Failed err ** CDisconnected)
-                                             pure $ case openResult conn of
-                                                         OK => (OK ** CConnected (MkConnection conn types))
-                                                         Failed err => (Failed err ** CDisconnected)
+                                             status <- openResult conn
+                                             case status of
+                                                  OK => do Right types <- pgLoadTypes conn
+                                                             | Left err => pure (Failed err ** CDisconnected)
+                                                           pure (OK ** CConnected (MkConnection conn types))
+                                                  Failed err => pure (Failed err ** CDisconnected)
 runDatabase' (CConnected conn) DBClose = do pgClose (getConn conn)
                                             pure $ (() ** CDisconnected)
 runDatabase' (CConnected conn) (Exec fn) = liftIO $ do res <- fn conn
@@ -128,6 +130,10 @@ runDatabase' cs (DIO io) = do v <- liftIO io
 export
 evalDatabase : HasIO io => Database a Closed (const Closed) -> io a
 evalDatabase db = pure $ fst !(runDatabase' CDisconnected db)
+
+export
+initDatabase : Database () Closed (const Closed)
+initDatabase = pure ()
 
 export
 openDatabase : (url : String) -> Database OpenResult Closed OpenResultState
