@@ -1,12 +1,13 @@
 
 IDRIS := idris2
-INSTALLDIR = `${IDRIS} --libdir`/pg-idris/lib
 
 TARGET = libpg-idris
+TARGET_VERSION ?= 0.0
+
+INSTALLDIR = `${IDRIS} --libdir`/pg-idris-${TARGET_VERSION}/lib
 
 LDFLAGS = -L$(shell pg_config --libdir) -lpq
 CPPFLAGS = -I$(shell pg_config --includedir)
-LD_LIBRARY_PATH += $(shell pg_config --includedir)
 
 CC_VERSION = $(shell $(CC) --version)
 
