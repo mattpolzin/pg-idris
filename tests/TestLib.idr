@@ -11,10 +11,6 @@ export
 databaseUrl : HasIO io => io (Maybe String)
 databaseUrl = getEnv "TEST_DATABASE_URL"
 
-init : List1 a -> List a
-init (head ::: []) = []
-init (head ::: (x :: xs)) = head :: (init (x ::: xs))
-
 ||| Strip the database name off the end of the database URL
 ||| and append the test database.
 testDatabaseUrl : String -> String

@@ -6,7 +6,7 @@ import System
 import Postgres
 
 tests : TestPool
-tests = MkTestPool [] [
+tests = MkTestPool "postgres" [] [
   "expected_type_query"
 ]
 
