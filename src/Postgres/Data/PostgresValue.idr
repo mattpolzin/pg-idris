@@ -1,15 +1,15 @@
 module Postgres.Data.PostgresValue
 
 import Data.Either
-import Data.Strings
+import Data.String
 import Data.List
 import Data.List1
 import Postgres.Data.PostgresType
 import Language.JSON
 
 public export
-data PValue : (pType : PType) -> Type where
-  Raw : (rawString : String) -> PValue pType
+data PValue : (p : PType) -> Type where
+  Raw : (rawString : String) -> PValue p
 
 export
 rawString : PValue t -> String
@@ -97,7 +97,7 @@ parseArray str =
 
 export
 [SafeCastList] SafeCast (PValue from) to => SafeCast (PValue (PArray from)) (List to) where
-  safeCast (Raw rawString) = (parseArray rawString) >>= (traverse (safeCast . (Raw {pType=from})))
+  safeCast (Raw rawString) = (parseArray rawString) >>= (traverse (safeCast . (Raw {p=from})))
 
 --
 -- Default Types
@@ -113,7 +113,7 @@ data HasDefaultType : Type -> Type where
   DJson     : SafeCast (PValue PJson)    JSON    => HasDefaultType JSON
   DList     : HasDefaultType to => HasDefaultType (List to)
 
-safeCastImpl : HasDefaultType to -> (pType ** SafeCast (PValue pType) to)
+safeCastImpl : HasDefaultType to -> (p ** SafeCast (PValue p) to)
 safeCastImpl (DInteger @{safe}) = (_ ** safe)
 safeCastImpl (DDouble  @{safe}) = (_ ** safe)
 safeCastImpl (DChar    @{safe}) = (_ ** safe)
@@ -135,19 +135,19 @@ notNothing ctx = maybeToEither ("Unexpected null when looking for " ++ ctx)
 -- some gross repetition between the following two methods.
 -- having a bit of brain block figuring out how to combine
 -- the two right now.
-parse : (pType ** SafeCast (PValue pType) to)
+parse : (p ** SafeCast (PValue p) to)
      -> Maybe String 
      -> Either String to
-parse (pType ** safe) str = 
-  let ctx = (show pType) 
+parse (p ** safe) str = 
+  let ctx = (show p) 
   in
       notNothing ctx str >>= ((maybeToEither $ "Failed to parse " ++ ctx) . safeCast @{safe} . Raw)
 
-parseNullable : (pType ** SafeCast (PValue pType) to)
+parseNullable : (p ** SafeCast (PValue p) to)
              -> Maybe String 
              -> Either String (Maybe to)
-parseNullable (pType ** safe) str = 
-  let ctx = (show pType) ++ "?"
+parseNullable (p ** safe) str = 
+  let ctx = (show p) ++ "?"
   in
       case str of
         Just s  => Just <$> ((maybeToEither $ "Failed to parse " ++ ctx) $ safeCast @{safe} $ Raw s)

@@ -8,7 +8,7 @@ import Decidable.Equality
 import Data.List
 import Data.Vect
 import Data.Vect.Elem
-import Data.Strings
+import Data.String
 import Data.String.Extra
 import Data.Either
 

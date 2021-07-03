@@ -201,7 +201,7 @@ expectedQuery : {cols : Nat}
              -> (query : String) 
              -> {auto castable : (All Castable expected)} 
              -> Connection 
-             -> IO (Either String (rows ** Vect rows (HVect expected)))
+             -> IO (Either String (rowCount ** Vect rowCount (HVect expected)))
 expectedQuery expected query (MkConnection conn types) = pgResultQuery expected query conn
 
 ||| Perform the given command and instead of parsing the response

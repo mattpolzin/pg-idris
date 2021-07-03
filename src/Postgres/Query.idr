@@ -29,26 +29,26 @@ maybeFirstRowCol res = do row <- natToFin 0 r
 -- Headers
 --
 
-headerNames : {cols : Nat} -> TupleResult rows cols -> Vect cols String
+headerNames : {colCount : Nat} -> TupleResult _ colCount -> Vect colCount String
 headerNames t = pgResultsetColNames t
 
 headerTypes : {auto types : TypeDictionary} 
-           -> {cols : Nat} 
-           -> TupleResult rows cols 
-           -> Vect cols PType
+           -> {colCount : Nat} 
+           -> TupleResult _ colCount 
+           -> Vect colCount PType
 headerTypes t = pgResultsetColTypes t
 
 headers : {auto types : TypeDictionary} 
-       -> {cols : Nat} 
-       -> TupleResult rows cols 
-       -> Vect cols ColHeader
+       -> {colCount : Nat} 
+       -> TupleResult _ colCount 
+       -> Vect colCount ColHeader
 headers t = (uncurry MkHeader) <$> (zip (headerNames t) (headerTypes t))
 
 --
 -- Stringy (unityped) Results
 --
 
-rows : {rows, cols : Nat} -> TupleResult rows cols -> Vect rows (Vect cols (Maybe String))
+rows : {rowCount, colCount : Nat} -> TupleResult rowCount colCount -> Vect rowCount (Vect colCount (Maybe String))
 rows t = (map force) <$> pgNullableStringResultset t
 
 export
@@ -91,39 +91,39 @@ processValue : Castable expected
             -> Either String expected
 processValue hasDefault = (asDefaultType hasDefault)
 
-processCols : {0 expected : Vect cols Type}
+processCols : {0 expected : Vect colCount Type}
            -> All Castable expected 
-           -> Vect cols (Maybe String)
+           -> Vect colCount (Maybe String)
            -> Either String (HVect expected)
 processCols [] [] = Right []
 processCols (castable :: castables) (x :: xs) = 
   [| (processValue castable x) :: (processCols castables xs) |]
 
-processRows : {0 expected : Vect cols Type} 
+processRows : {0 expected : Vect colCount Type} 
            -> {auto castable : (All Castable expected)}
-           -> Vect rows (Vect cols (Maybe String)) 
-           -> Either String (Vect rows (HVect expected))
-processRows {cols} xs = traverse (processCols castable) xs 
+           -> Vect rowCount (Vect colCount (Maybe String)) 
+           -> Either String (Vect rowCount (HVect expected))
+processRows xs = traverse (processCols castable) xs 
 
 ||| Get the result as a rows of the expected types of values if possible.
 export
 pgResultQuery : {auto types : TypeDictionary} 
-             -> {cols : Nat}
-             -> (expected : Vect cols Type) 
+             -> {colCount : Nat}
+             -> (expected : Vect colCount Type) 
              -> (query : String) 
              -> Conn 
              -> {auto castable : (All Castable expected)}
-             -> IO (Either String (rows ** Vect rows (HVect expected)))
-pgResultQuery {cols} expected query conn = 
-  do Right (rows ** receivedCols ** strings) <- pgStringResultsQuery False query conn
+             -> IO (Either String (rowCount ** Vect rowCount (HVect expected)))
+pgResultQuery expected query conn = 
+  do Right (rowCount ** receivedCols ** strings) <- pgStringResultsQuery False query conn
        | Left err => pure $ Left err
-     case decEq cols receivedCols of
+     case decEq colCount receivedCols of
           (No _) => 
             pure $ Left $ columnMismatchError receivedCols
           (Yes correctCols) => 
-            pure $ (MkDPair rows) <$> processRows rewrite correctCols in strings
+            pure $ (MkDPair rowCount) <$> processRows rewrite correctCols in strings
     where
       columnMismatchError : (received : Nat) -> String
       columnMismatchError received = 
-        "Wrong number of columns returned. Expected " ++ (show cols) ++ " but got " ++ (show received)
+        "Wrong number of columns returned. Expected " ++ (show colCount) ++ " but got " ++ (show received)
 
