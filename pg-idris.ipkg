@@ -19,7 +19,9 @@ modules = Postgres,
 	  Postgres.Result,
 	  Postgres.Utility
 
-opts = "-p contrib"
+depends = contrib
+
+opts = "-Xcase-tree-opt"
 
 prebuild = "make -C pg-helpers"
 postinstall = "make -C pg-helpers install"
