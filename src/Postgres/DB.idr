@@ -150,7 +150,7 @@ exec = Exec
 ||| Conn, including closing the database connection prematurely.
 export
 unsafeExec : (Conn -> IO a) -> Database a Open (const Open)
-unsafeExec f = Exec \(MkConnection conn empty) => f conn
+unsafeExec f = Exec (\(MkConnection conn empty) => f conn)
 
 ||| Take a function that operates on a Conn
 ||| (currency of the underlying lower level

@@ -117,11 +117,12 @@ pgResultQuery : {auto types : TypeDictionary}
 pgResultQuery expected query conn = 
   do Right (rowCount ** receivedCols ** strings) <- pgStringResultsQuery False query conn
        | Left err => pure $ Left err
-     case decEq colCount receivedCols of
-          (No _) => 
-            pure $ Left $ columnMismatchError receivedCols
-          (Yes correctCols) => 
-            pure $ (MkDPair rowCount) <$> processRows rewrite correctCols in strings
+     pure $ 
+       case decEq colCount receivedCols of
+            (No _) => 
+              Left $ columnMismatchError receivedCols
+            (Yes correctCols) => 
+              (MkDPair rowCount) <$> processRows (rewrite correctCols in strings)
     where
       columnMismatchError : (received : Nat) -> String
       columnMismatchError received = 
