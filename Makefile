@@ -3,6 +3,7 @@ INTERACTIVE ?= --interactive
 IDRIS := idris2
 
 PACKAGE = pg-idris.ipkg
+
 INDEXED_VERSION = 0.0.4
 INDEXED_RELATIVE_DIR = indexed-${INDEXED_VERSION}
 IDRIS_LIB_DIR := $(shell ${IDRIS} --libdir)

@@ -8,5 +8,5 @@ main = Main
 
 depends = contrib
         , indexed >= 0.0.4
-        , pg-idris
+        , pg-idris == 0.0.1
         , test
