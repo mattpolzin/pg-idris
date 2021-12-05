@@ -34,7 +34,7 @@ clean:
 install:
 	$(IDRIS) --install $(PACKAGE)
 	mkdir -p $(IDRIS_LIB_DIR)/${INDEXED_RELATIVE_DIR} && \
-	cp -R ./depends/${INDEXED_RELATIVE_DIR} $(IDRIS_LIB_DIR)/${INDEXED_RELATIVE_DIR}
+	cp -R ./depends/${INDEXED_RELATIVE_DIR} $(IDRIS_LIB_DIR)/
 	
 test:
 	cd tests && \
