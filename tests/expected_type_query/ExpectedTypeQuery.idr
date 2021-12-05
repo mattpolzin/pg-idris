@@ -12,7 +12,7 @@ testQuery = "select * from public.expected_types"
 
 main : IO ()
 main = 
-  ignore . withTestDB $ do
+  ignore . withTestDB $ TransitionIndexed.Do.do
     res1 <- exec $ perform setupQuery1
     liftIO' . putStrLn $ show res1
     res2 <- exec $ perform setupQuery2
