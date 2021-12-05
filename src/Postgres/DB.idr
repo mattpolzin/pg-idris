@@ -16,6 +16,8 @@ import Language.JSON
 import Data.HVect
 import Data.Vect.Quantifiers
 
+import public Control.TransitionIndexed
+
 --
 -- Safe connection
 --
@@ -67,7 +69,7 @@ getTypes : Connection -> TypeDictionary
 getTypes (MkConnection _ types) = types
 
 export
-data Database : (ty : Type) -> (s1 : DBState) -> (s2Fn : (ty -> DBState)) -> Type where
+data Database : (0 ty : Type) -> (s1 : DBState) -> (0 s2Fn : (ty -> DBState)) -> Type where
   DBOpen  : (url : String) -> Database OpenResult Closed OpenResultState
   DBClose : Database () Open (const Closed)
 
@@ -83,16 +85,12 @@ data Database : (ty : Type) -> (s1 : DBState) -> (s2Fn : (ty -> DBState)) -> Typ
 %name Database db, db1, db2
 
 export
-(>>=) : (db : Database a s1 s2Fn) -> (f : (x : a) -> Database b (s2Fn x) s3Fn) -> Database b s1 s3Fn
-(>>=) = Bind
+TransitionIndexedPointed DBState Database where
+  pure = Pure
 
 export
-(>>) : (db : Database a s1 (const s2)) -> Database b s2 s3Fn -> Database b s1 s3Fn
-db >> db2 = db >>= (\_ => db2)
-
-export
-pure : (x : a) -> Database a (stateFn x) stateFn
-pure = Pure
+TransitionIndexedMonad DBState Database where
+  bind = Bind
 
 export
 liftIO' : IO a -> Database a s1 (const s1)
@@ -107,13 +105,13 @@ openResult conn = case (pgStatus conn) of
                        OK => pure OK
                        x  => Failed <$> pgErrorMessage conn
 
-runDatabase' : HasIO io => ConnectionState s1 -> Database a s1 s2Fn -> io $ (x : a ** ConnectionState (s2Fn x))
+runDatabase' : HasIO io => ConnectionState s1 -> Database a s1 s2Fn -> io (x : a ** ConnectionState (s2Fn x))
 runDatabase' CDisconnected (DBOpen url) = do conn <- pgOpen url
                                              status <- openResult conn
                                              case status of
                                                   OK => do Right types <- pgLoadTypes conn
                                                              | Left err => pure (Failed err ** CDisconnected)
-                                                           pure (OK ** CConnected (MkConnection conn types))
+                                                           Prelude.pure (OK ** CConnected (MkConnection conn types))
                                                   Failed err => pure (Failed err ** CDisconnected)
 runDatabase' (CConnected conn) DBClose = do pgClose (getConn conn)
                                             pure $ (() ** CDisconnected)

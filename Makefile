@@ -3,26 +3,38 @@ INTERACTIVE ?= --interactive
 IDRIS := idris2
 
 PACKAGE = pg-idris.ipkg
+INDEXED_VERSION = 0.0.4
+INDEXED_RELATIVE_DIR = indexed-${INDEXED_VERSION}
+IDRIS_LIB_DIR := $(shell ${IDRIS} --libdir)
 
-all: build
+.PHONY: all deps build clean install test
 
-.PHONY: build
+all: deps build
+
+./depends/${INDEXED_RELATIVE_DIR}:
+	mkdir -p ./build/deps
+	mkdir -p ./depends
+	cd ./build/deps && \
+	git clone https://github.com/mattpolzin/idris-indexed.git && \
+	cd idris-indexed && \
+	make && \
+	cp -R ./build/ttc ../../../depends/${INDEXED_RELATIVE_DIR}/
+
+deps: ./depends/${INDEXED_RELATIVE_DIR}
 
 build:
 	$(IDRIS) --build $(PACKAGE)
 
-.PHONY: clean
-
 clean:
+	rm -rf ./depends
+	rm -rf ./build/deps
 	$(IDRIS) --clean $(PACKAGE)
-
-.PHONY: install
 
 install:
 	$(IDRIS) --install $(PACKAGE)
+	mkdir -p $(IDRIS_LIB_DIR)/${INDEXED_RELATIVE_DIR} && \
+	cp -R ./depends/${INDEXED_RELATIVE_DIR} $(IDRIS_LIB_DIR)/${INDEXED_RELATIVE_DIR}
 	
-.PHONY: test
-
 test:
 	cd tests && \
 	$(IDRIS) --build pg-idris-tests.ipkg && \

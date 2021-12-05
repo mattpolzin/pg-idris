@@ -2,6 +2,7 @@
 *.*~
 *.swp
 /build/*
+/depends/*
 /tests/**/output
 /Example/build/*
 libpg-idris

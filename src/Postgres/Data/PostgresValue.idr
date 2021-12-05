@@ -103,59 +103,55 @@ export
 -- Default Types
 --
 
-public export
-data HasDefaultType : Type -> Type where
-  DInteger  : SafeCast (PValue PInteger) Integer => HasDefaultType Integer 
-  DDouble   : SafeCast (PValue PDouble)  Double  => HasDefaultType Double
-  DChar     : SafeCast (PValue PChar)    Char    => HasDefaultType Char
-  DBoolean  : SafeCast (PValue PBoolean) Bool    => HasDefaultType Bool
-  DString   : SafeCast (PValue PString)  String  => HasDefaultType String
-  DJson     : SafeCast (PValue PJson)    JSON    => HasDefaultType JSON
-  DList     : HasDefaultType to => HasDefaultType (List to)
+getSafeCast : (t1 : PType) -> SafeCast (PValue t1) t2 => SafeCast (PValue t1) t2
+getSafeCast t1 @{safe} = safe
 
-safeCastImpl : HasDefaultType to -> (p ** SafeCast (PValue p) to)
-safeCastImpl (DInteger @{safe}) = (_ ** safe)
-safeCastImpl (DDouble  @{safe}) = (_ ** safe)
-safeCastImpl (DChar    @{safe}) = (_ ** safe)
-safeCastImpl (DBoolean @{safe}) = (_ ** safe)
-safeCastImpl (DString  @{safe}) = (_ ** safe)
-safeCastImpl (DJson    @{safe}) = (_ ** safe)
-safeCastImpl (DList    @{hdt})  = let (pType1 ** safe) = safeCastImpl hdt
-                                  in
-                                      (PArray pType1 ** SafeCastList)
+export
+interface DBStringCast a where
+  ||| Cast the string representation of a database value to
+  ||| the given Idris type if possible or provide an error
+  ||| message.  
+  dbCast : String -> Either String a
+
+export
+DBStringCast Integer where
+  dbCast str = maybeToEither "Failed to parse an integer from '\{str}'" . safeCast @{getSafeCast PInteger} $ Raw str
+
+export
+DBStringCast Double where
+  dbCast str = maybeToEither "Failed to parse a double from '\{str}'" . safeCast @{getSafeCast PDouble} $ Raw str
+
+export
+DBStringCast Char where
+  dbCast str = maybeToEither "Failed to parse a char from '\{str}'" . safeCast @{getSafeCast PChar} $ Raw str
+
+export
+DBStringCast Bool where
+  dbCast str = maybeToEither "Failed to parse a boolean from '\{str}'" . safeCast @{getSafeCast PBoolean} $ Raw str
+
+export
+DBStringCast String where
+  dbCast str = maybeToEither "Failed to parse a string from '\{str}'" . safeCast @{getSafeCast PString} $ Raw str
+
+export
+DBStringCast JSON where
+  dbCast str = maybeToEither "Failed to parse json from '\{str}'" . safeCast @{getSafeCast PJson} $ Raw str
+
+export
+DBStringCast a => DBStringCast (List a) where
+  dbCast str = traverse dbCast <=< maybeToEither "Failed to parse an array '\{str}'" $ parseArray str
 
 public export
 data Castable : Type -> Type where
-  Cast      : HasDefaultType ty => Castable ty
-  CastMaybe : HasDefaultType ty => Castable (Maybe ty)
-
-notNothing : (context : String) -> Maybe String -> Either String String
-notNothing ctx = maybeToEither ("Unexpected null when looking for " ++ ctx)
-
--- some gross repetition between the following two methods.
--- having a bit of brain block figuring out how to combine
--- the two right now.
-parse : (p ** SafeCast (PValue p) to)
-     -> Maybe String 
-     -> Either String to
-parse (p ** safe) str = 
-  let ctx = (show p) 
-  in
-      notNothing ctx str >>= ((maybeToEither $ "Failed to parse " ++ ctx) . safeCast @{safe} . Raw)
-
-parseNullable : (p ** SafeCast (PValue p) to)
-             -> Maybe String 
-             -> Either String (Maybe to)
-parseNullable (p ** safe) str = 
-  let ctx = (show p) ++ "?"
-  in
-      case str of
-        Just s  => Just <$> ((maybeToEither $ "Failed to parse " ++ ctx) $ safeCast @{safe} $ Raw s)
-        Nothing => Right Nothing
+  Cast      : DBStringCast ty => Castable ty
+  CastMaybe : DBStringCast ty => Castable (Maybe ty)
 
 ||| Turn the string coming from Postgres into its default Idris type.
+|||
+||| You can create your own `DBStringCast` implementations if you wish to
+||| be able to parse additional types using this library's builtin functions.
 public export
 asDefaultType : Castable t -> (columnValue : Maybe String) -> Either String t
-asDefaultType (Cast      @{hdt}) = parse (safeCastImpl hdt)
-asDefaultType (CastMaybe @{hdt}) = parseNullable (safeCastImpl hdt)
+asDefaultType (Cast      @{dbcast}) = dbCast <=< maybeToEither "Unexpected null while casting Postgres values!"
+asDefaultType (CastMaybe @{dbcast}) = traverse dbCast
 

@@ -19,11 +19,15 @@ Currently supports:
 
 ## Dependencies
 
-This library currently depends on bleeding edge of the Idris 2 project. At any time you might need to build and install Idris 2 from its `master` branch in order to build and use this library.
+This library currently depends on bleeding edge of the Idris 2 project. At any time you might need to build and install Idris 2 from its `main` branch in order to build and use this library.
 
 You also need `libpq` (the Postgres C client implementation) installed to run apps using this library and `libpq-dev` to build this library from source.
 
 To build and install this library you will need to have `clang` on MacOS (comes out of box) and `gcc` on Linux (depending on the distro might need to be installed).
+
+### Idris Packages
+
+The `indexed` Idris package is needed. It is cloned, built, and installed locally to this project's `depends` folder when you run `make`. You can find the package at https://github.com/mattpolzin/idris-indexed.
 
 ## Usage
 
@@ -33,9 +37,9 @@ You can take a look at the `Main.idr` and `example.ipkg` in the Example folder f
 Run `make install` to build and install the library. Make sure that the libraries install directory (`$(idris2 --libpath)/pg-idris/lib`) is in your `LD_LIBRARY_PATH` environment variable so that pg-idris can be found when building an app that uses it. An alternative is to copy the contents of that lib directory into the directory of any executable you build that depends on it.
 
 ### Include the package
-When running `idris2`, pass the `-p pg-idris` and `-p contrib` command line arguments.
+When running `idris2`, pass the `-p pg-idris`, `-p indexed`, and `-p contrib` command line arguments.
 
-If you have a package manifest, add `pg-idris` and `contrib` to the list of `depends`:
+If you have a package manifest, add `pg-idris`, `indexed`, and `contrib` to the list of `depends`:
 ```
 package yourpackage
 
@@ -133,4 +137,5 @@ So far the most type safety you can get is via either the `jsonQuery` or the `ex
 ```idris
 expectedQuery [String, String, Bool] "select schemaname, tablename, hasindexes from pg_tables limit 10" conn
 ```
-You can find the Idris types supported by `expectedQuery` under the definition of [`HasDefaultType`](https://github.com/mattpolzin/pg-idris/blob/main/src/Postgres/Data/PostgresValue.idr#L107).
+You can support additional types for `expectedQuery` by creating new implementations of the `DBStringCast` interface. Idris's `:doc DBStringCast` will tell you what types are supported out of box by `pg-idris`.
+

@@ -1,5 +1,6 @@
 package pg-idris
 
+version = 0.0.1
 sourcedir = "src"
 
 modules = Postgres,
@@ -20,8 +21,7 @@ modules = Postgres,
 	  Postgres.Utility
 
 depends = contrib
-
-opts = "-Xcase-tree-opt"
+        , indexed >= 0.0.4
 
 prebuild = "make -C pg-helpers"
 postinstall = "make -C pg-helpers install"
