@@ -17,6 +17,7 @@ all: deps build
 	mkdir -p ./depends
 	cd ./build/deps && \
 	git clone https://github.com/mattpolzin/idris-indexed.git && \
+	git checkout ${INDEXED_VERSION}
 	cd idris-indexed && \
 	make && \
 	cp -R ./build/ttc ../../../depends/${INDEXED_RELATIVE_DIR}/
