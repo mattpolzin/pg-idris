@@ -1,27 +1,27 @@
 package pg-idris
 
-version = 0.0.1
+version = 0.0.2
 sourcedir = "src"
 
-modules = Postgres,
-          Postgres.DB,
-	  Postgres.DB.Core,
-	  Postgres.DB.Wait,
-	  Postgres.Data,
-	  Postgres.Data.Conn,
-	  Postgres.Data.ConnectionStatus,
-	  Postgres.Data.ResultStatus,
-	  Postgres.Data.PostgresType,
-	  Postgres.Data.PostgresValue,
-	  Postgres.Exec,
-	  Postgres.LoadTypes,
-          Postgres.Notification,
-	  Postgres.Query,
-	  Postgres.Result,
-	  Postgres.Utility
+modules = Postgres
+        , Postgres.DB
+        , Postgres.DB.Core
+        , Postgres.DB.Wait
+        , Postgres.Data
+        , Postgres.Data.Conn
+        , Postgres.Data.ConnectionStatus
+        , Postgres.Data.ResultStatus
+        , Postgres.Data.PostgresType
+        , Postgres.Data.PostgresValue
+        , Postgres.Exec
+        , Postgres.LoadTypes
+        , Postgres.Notification
+        , Postgres.Query
+        , Postgres.Result
+        , Postgres.Utility
 
-depends = contrib
-        , indexed >= 0.0.4
+depends = contrib >= 0.5.1
+        , indexed >= 0.0.5
 
 prebuild = "make -C pg-helpers"
 postinstall = "make -C pg-helpers install"

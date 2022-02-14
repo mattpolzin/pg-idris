@@ -4,7 +4,7 @@ IDRIS := idris2
 
 PACKAGE = pg-idris.ipkg
 
-INDEXED_VERSION = 0.0.4
+INDEXED_VERSION = 0.0.5
 INDEXED_RELATIVE_DIR = indexed-${INDEXED_VERSION}
 IDRIS_LIB_DIR := $(shell ${IDRIS} --libdir)
 
@@ -18,6 +18,7 @@ all: deps build
 	cd ./build/deps && \
 	git clone https://github.com/mattpolzin/idris-indexed.git && \
 	cd idris-indexed && \
+	git checkout ${INDEXED_VERSION} && \
 	make && \
 	cp -R ./build/ttc ../../../depends/${INDEXED_RELATIVE_DIR}/
 
@@ -33,6 +34,11 @@ clean:
 
 install:
 	$(IDRIS) --install $(PACKAGE)
+	mkdir -p $(IDRIS_LIB_DIR)/${INDEXED_RELATIVE_DIR} && \
+	cp -R ./depends/${INDEXED_RELATIVE_DIR} $(IDRIS_LIB_DIR)/
+	
+install-with-src:
+	$(IDRIS) --install-with-src $(PACKAGE)
 	mkdir -p $(IDRIS_LIB_DIR)/${INDEXED_RELATIVE_DIR} && \
 	cp -R ./depends/${INDEXED_RELATIVE_DIR} $(IDRIS_LIB_DIR)/
 	
