@@ -69,7 +69,7 @@ getTypes : Connection -> TypeDictionary
 getTypes (MkConnection _ types) = types
 
 export
-data Database : (0 ty : Type) -> (s1 : DBState) -> (0 s2Fn : (ty -> DBState)) -> Type where
+data Database : (ty : Type) -> (s1 : DBState) -> (s2Fn : (ty -> DBState)) -> Type where
   DBOpen  : (url : String) -> Database OpenResult Closed OpenResultState
   DBClose : Database () Open (const Closed)
 
