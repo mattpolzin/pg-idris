@@ -9,6 +9,7 @@ import Postgres.Data.Conn
 import Postgres.Data.ConnectionStatus
 import Postgres.Data.PostgresType
 import Postgres.Data.PostgresValue
+import Postgres.Data.PostgresTable
 import Postgres.Exec
 import Postgres.LoadTypes
 import Postgres.Notification
@@ -200,6 +201,14 @@ expectedQuery : {cols : Nat}
              -> Connection 
              -> IO (Either String (rowCount ** Vect rowCount (HVect expected)))
 expectedQuery expected query (MkConnection conn types) = pgResultQuery expected query conn
+
+export
+tableQuery : PostgresTable t => {n : _} -> (table : t) -> (cols : Vect n (String, Type)) -> HasMappings table cols =>
+                Connection 
+             -> IO (Either String (rowCount ** Vect rowCount (HVect (Builtin.snd <$> cols))))
+tableQuery table cols @{mappings} conn with (select table cols @{mappings})
+  tableQuery table cols @{mappings} conn | query =
+    expectedQuery (snd <$> cols) query conn @{allCastable table}
 
 ||| Perform the given command and instead of parsing the response
 ||| just report the result status. This is useful when you don't

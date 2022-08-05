@@ -34,7 +34,7 @@ getTestConfig = do
 
 export
 dbSetup : Database () Open (const Open)
-dbSetup = TransitionIndexed.Do.do
+dbSetup = TransitionIndexed.do
   liftIO' $ putStrLn "Setting database up"
   res1 <- exec $ perform "drop database if exists pg_idris_test"
   liftIO' . putStrLn $ show res1

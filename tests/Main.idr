@@ -8,6 +8,7 @@ import Postgres
 tests : TestPool
 tests = MkTestPool "postgres" [] Nothing [
   "expected_type_query"
+, "table_query"
 ]
 
 exitError : String -> IO ()

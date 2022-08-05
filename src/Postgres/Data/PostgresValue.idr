@@ -96,7 +96,7 @@ parseArray str =
          pure . forget $ pack <$> (splitOn ',' middle)
 
 export
-[SafeCastList] SafeCast (PValue from) to => SafeCast (PValue (PArray from)) (List to) where
+SafeCast (PValue from) to => SafeCast (PValue (PArray from)) (List to) where
   safeCast (Raw rawString) = (parseArray rawString) >>= (traverse (safeCast . (Raw {p=from})))
 
 --
@@ -140,6 +140,10 @@ DBStringCast JSON where
 export
 DBStringCast a => DBStringCast (List a) where
   dbCast str = traverse dbCast <=< maybeToEither "Failed to parse an array '\{str}'" $ parseArray str
+
+export
+[SafeCastString] SafeCast (PValue t1) t2 => DBStringCast t2 where
+  dbCast str = maybeToEither "Failed to parse '\{str}' as expected type." . safeCast {ty1=PValue t1} $ Raw str
 
 public export
 data Castable : Type -> Type where
