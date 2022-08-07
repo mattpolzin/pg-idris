@@ -7,7 +7,11 @@ import Postgres
 
 tests : TestPool
 tests = MkTestPool "postgres" [] Nothing [
-  "expected_type_query"
+  -- code compilation tests
+  "join_statement"
+
+  -- database query tests (integration tests)
+, "expected_type_query"
 , "table_query"
 , "join_query"
 ]
