@@ -13,14 +13,14 @@ setupQuery2 = "insert into public.table (i, d, b, t, c, j, ai, dm) values (1, 2.
 
 table : RuntimeTable
 table = RT ( Identifier "table") [
-    ("i", col False PInteger)
-  , ("d", col False PDouble)
-  , ("b", col False PBoolean)
-  , ("t", col False PString)
-  , ("c", col False PChar)
-  , ("j", col False PJson)
-  , ("ai", col False (PArray PInteger))
-  , ("dm", col True PDouble)
+    ("i", col NonNullable PInteger)
+  , ("d", col NonNullable PDouble)
+  , ("b", col NonNullable PBoolean)
+  , ("t", col NonNullable PString)
+  , ("c", col NonNullable PChar)
+  , ("j", col NonNullable PJson)
+  , ("ai", col NonNullable (PArray PInteger))
+  , ("dm", col Nullable PDouble)
   ]
 
 testQuery : Vect ? (String, Type)

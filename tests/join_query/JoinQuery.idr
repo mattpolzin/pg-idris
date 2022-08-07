@@ -22,21 +22,21 @@ setupQuery21 = "insert into public.table2 (f_i, extra1, extra2) values (1, 'hell
 
 table1 : RuntimeTable
 table1 = RT (Identifier "table1") [
-    ("i", col False PInteger)
-  , ("d", col False PDouble)
-  , ("b", col False PBoolean)
-  , ("t", col False PString)
-  , ("c", col False PChar)
-  , ("j", col False PJson)
-  , ("ai", col False (PArray PInteger))
-  , ("dm", col True PDouble)
+    ("i", col NonNullable PInteger)
+  , ("d", col NonNullable PDouble)
+  , ("b", col NonNullable PBoolean)
+  , ("t", col NonNullable PString)
+  , ("c", col NonNullable PChar)
+  , ("j", col NonNullable PJson)
+  , ("ai", col NonNullable (PArray PInteger))
+  , ("dm", col Nullable PDouble)
   ]
 
 table2 : RuntimeTable
 table2 = RT (Identifier "table2") [
-    ("f_i", col False PInteger)
-  , ("extra1", col False PString)
-  , ("extra2", col False PString)
+    ("f_i", col NonNullable PInteger)
+  , ("extra1", col NonNullable PString)
+  , ("extra2", col NonNullable PString)
   ]
 
 testQuery : Vect ? (String, Type)
