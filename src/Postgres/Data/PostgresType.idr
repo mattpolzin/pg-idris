@@ -68,8 +68,11 @@ Show PType where
   show (PUnknown (MkOid oid)) = "Oid: " ++ (show oid)
 
 public export
+data Nullability = Nullable | NonNullable
+
+public export
 data PColType : PType -> Type where
-  MkColType : (nullable: Bool) -> (pt : PType) -> PColType pt
+  MkColType : (nullable: Nullability) -> (pt : PType) -> PColType pt
 
 export
 Show (PColType t) where
@@ -81,7 +84,8 @@ pType (MkColType _ t) = t
 
 public export
 nullable : PColType t -> Bool
-nullable (MkColType n _) = n
+nullable (MkColType Nullable _) = True
+nullable (MkColType NonNullable _) = False
 
 --
 -- Format Code

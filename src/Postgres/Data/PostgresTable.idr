@@ -48,7 +48,7 @@ implementation PostgresTable RuntimeTable where
   columns = .columns
 
 public export
-col : (nullable : Bool) -> (pt : PType) -> Exists PColType
+col : (nullable : Nullability) -> (pt : PType) -> Exists PColType
 col nullable pt = Evidence pt (MkColType nullable pt)
 
 ||| A mapping between a column name and Idris type to some element in a list of column names
@@ -56,8 +56,8 @@ col nullable pt = Evidence pt (MkColType nullable pt)
 ||| type for that column can be cast to the Idris type specified.
 public export
 data ColumnMapping : List (String, Exists PColType) -> (String, Type) -> Type where
-  HereNul : (name : String) -> (ty : Type) -> SafeCast (PValue pt) ty => ColumnMapping ((name, (Evidence pt (MkColType True pt))) :: xs) (name, Maybe ty)
-  Here : (name : String) -> (ty : Type) -> SafeCast (PValue pt) ty => ColumnMapping ((name, (Evidence pt (MkColType False pt))) :: xs) (name, ty)
+  HereNul : (name : String) -> (ty : Type) -> SafeCast (PValue pt) ty => ColumnMapping ((name, (Evidence pt (MkColType Nullable pt))) :: xs) (name, Maybe ty)
+  Here : (name : String) -> (ty : Type) -> SafeCast (PValue pt) ty => ColumnMapping ((name, (Evidence pt (MkColType NonNullable pt))) :: xs) (name, ty)
   There : ColumnMapping xs (name, ty) -> ColumnMapping (x :: xs) (name, ty)
 
 public export
@@ -100,8 +100,8 @@ innerJoin table1 table2 joinOn =
   in  RT (Subquery "tmp" subquery) ((columns table1) ++ (columns table2))
 
 mappingCastable : {cs : _} -> ColumnMapping cs (name, ty) => Castable ty
-mappingCastable {cs = ((name, Evidence pt (MkColType True pt)) :: xs)} @{(HereNul name x @{sc})} = CastMaybe @{SafeCastString {t1=pt}}
-mappingCastable {cs = ((name, Evidence pt (MkColType False pt)) :: xs)} @{(Here name ty @{sc})} = Cast @{SafeCastString {t1=pt}}
+mappingCastable {cs = ((name, Evidence pt (MkColType Nullable pt)) :: xs)} @{(HereNul name x @{sc})} = CastMaybe @{SafeCastString {t1=pt}}
+mappingCastable {cs = ((name, Evidence pt (MkColType NonNullable pt)) :: xs)} @{(Here name ty @{sc})} = Cast @{SafeCastString {t1=pt}}
 mappingCastable {cs = (x :: xs)} @{(There y)} = mappingCastable {cs=xs} @{y}
 
 export

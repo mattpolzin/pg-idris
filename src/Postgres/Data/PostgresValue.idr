@@ -17,6 +17,7 @@ rawString (Raw r) = r
 
 public export
 interface SafeCast ty1 ty2 where
+  constructor MkSafeCast
   safeCast : ty1 -> Maybe ty2
 
 -- Integer
