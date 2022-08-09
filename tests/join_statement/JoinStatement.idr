@@ -43,8 +43,8 @@ failing
              --                               ^
              -- Can't cast nullable Postgres string to Idris String (should be Maybe String)
 
-ValueCast PDouble Integer where
-  safeCast _ = Just 1
+IdrCast PDouble Integer where
+  toIdris _ = Just 1
 
 query5 : Connection -> IO (Either String (rowCount ** Vect rowCount (HVect [Integer, Maybe String])))
 query5 = tableQuery

@@ -12,6 +12,14 @@ data PValue : (p : PType) -> Type where
   Raw : (rawString : String) -> PValue p
 
 export
+Semigroup (PValue p) where
+  (Raw x) <+> (Raw y) = Raw (x <+> y)
+
+export
+Monoid (PValue p) where
+  neutral = Raw ""
+
+export
 rawString : PValue t -> String
 rawString (Raw r) = r
 
@@ -20,44 +28,65 @@ rawString (Raw r) = r
 ||| @param pt A Postgres type to cast from.
 ||| @param ty An Idris type to cast to.
 public export
-interface ValueCast pt ty where
-  safeCast : PValue pt -> Maybe ty
+interface IdrCast pt ty where
+  toIdris : PValue pt -> Maybe ty
+
+public export
+interface PGCast pt ty where
+  toPostgres : ty -> PValue pt
 
 -- Integer
 
 export
-ValueCast PInteger Integer where
-  safeCast = parseInteger . rawString
+IdrCast PInteger Integer where
+  toIdris = parseInteger . rawString
 
 export
-ValueCast PInteger Double where
-  safeCast = parseDouble . rawString
+PGCast PInteger Integer where
+  toPostgres = Raw . show
+
+export
+IdrCast PInteger Double where
+  toIdris = parseDouble . rawString
 
 -- Double
 
 export
-ValueCast PDouble Double where
-  safeCast = parseDouble . rawString
+IdrCast PDouble Double where
+  toIdris = parseDouble . rawString
   
+export
+PGCast PDouble Double where
+  toPostgres = Raw . show
+
 -- Char
 
 export
-ValueCast PChar Char where
-  safeCast (Raw str) with (unpack str)
-    safeCast (Raw str) | [c] = Just c
-    safeCast (Raw str) | _ = Nothing
+IdrCast PChar Char where
+  toIdris (Raw str) with (unpack str)
+    toIdris (Raw str) | [c] = Just c
+    toIdris (Raw str) | _ = Nothing
+
+export
+PGCast PChar Char where
+  toPostgres = Raw . singleton
 
 -- Boolean
 
 export
-ValueCast PBoolean Bool where
-  safeCast (Raw "t")     = Just True
-  safeCast (Raw "f")     = Just False
-  safeCast (Raw "true")  = Just True
-  safeCast (Raw "false") = Just False
-  safeCast (Raw "1")     = Just True
-  safeCast (Raw "0")     = Just False
-  safeCast (Raw _)       = Nothing
+IdrCast PBoolean Bool where
+  toIdris (Raw "t")     = Just True
+  toIdris (Raw "f")     = Just False
+  toIdris (Raw "true")  = Just True
+  toIdris (Raw "false") = Just False
+  toIdris (Raw "1")     = Just True
+  toIdris (Raw "0")     = Just False
+  toIdris (Raw _)       = Nothing
+
+export
+PGCast PBoolean Bool where
+  toPostgres True = Raw "true"
+  toPostgres False = Raw "false"
 
 -- TODO: Date
 
@@ -72,22 +101,34 @@ Cast (PValue PString) String where
   cast = rawString
 
 export
-ValueCast PString String where
-  safeCast = Just . cast
+IdrCast PString String where
+  toIdris = Just . cast
+
+export
+PGCast PString String where
+  toPostgres = Raw
 
 -- JSON
 
 export
-ValueCast PJson JSON where
-  safeCast = parse . rawString
+IdrCast PJson JSON where
+  toIdris = parse . rawString
+
+export
+PGCast PJson JSON where
+  toPostgres = Raw . show
 
 -- TODO: UUID
 
 -- OID
 
 export
-ValueCast POid Integer where
-  safeCast = parseInteger . rawString
+IdrCast POid Integer where
+  toIdris = parseInteger . rawString
+
+export
+PGCast POid Integer where
+  toPostgres = Raw . show
 
 -- Arrays
 
@@ -100,14 +141,20 @@ parseArray str =
          pure . forget $ pack <$> (splitOn ',' middle)
 
 export
-ValueCast from to => ValueCast (PArray from) (List to) where
-  safeCast (Raw rawString) = (parseArray rawString) >>= (traverse (safeCast . (Raw {p=from})))
+IdrCast from to => IdrCast (PArray from) (List to) where
+  toIdris (Raw rawString) = (parseArray rawString) >>= (traverse (toIdris . (Raw {p=from})))
+
+export
+PGCast to from => PGCast (PArray to) (List from) where
+  toPostgres xs = 
+    let (Raw values) = concat . intersperse (Raw ",") $ toPostgres {pt=to} <$> xs
+    in Raw $ "{" ++ values ++ "}"
 
 --
 -- Default Types
 --
 
-getSafeCast : (t1 : PType) -> ValueCast t1 t2 => ValueCast t1 t2
+getSafeCast : (t1 : PType) -> IdrCast t1 t2 => IdrCast t1 t2
 getSafeCast t1 @{safe} = safe
 
 export
@@ -119,35 +166,35 @@ interface DBStringCast a where
 
 export
 DBStringCast Integer where
-  dbCast str = maybeToEither "Failed to parse an integer from '\{str}'" . safeCast @{getSafeCast PInteger} $ Raw str
+  dbCast str = maybeToEither "Failed to parse an integer from '\{str}'" . toIdris @{getSafeCast PInteger} $ Raw str
 
 export
 DBStringCast Double where
-  dbCast str = maybeToEither "Failed to parse a double from '\{str}'" . safeCast @{getSafeCast PDouble} $ Raw str
+  dbCast str = maybeToEither "Failed to parse a double from '\{str}'" . toIdris @{getSafeCast PDouble} $ Raw str
 
 export
 DBStringCast Char where
-  dbCast str = maybeToEither "Failed to parse a char from '\{str}'" . safeCast @{getSafeCast PChar} $ Raw str
+  dbCast str = maybeToEither "Failed to parse a char from '\{str}'" . toIdris @{getSafeCast PChar} $ Raw str
 
 export
 DBStringCast Bool where
-  dbCast str = maybeToEither "Failed to parse a boolean from '\{str}'" . safeCast @{getSafeCast PBoolean} $ Raw str
+  dbCast str = maybeToEither "Failed to parse a boolean from '\{str}'" . toIdris @{getSafeCast PBoolean} $ Raw str
 
 export
 DBStringCast String where
-  dbCast str = maybeToEither "Failed to parse a string from '\{str}'" . safeCast @{getSafeCast PString} $ Raw str
+  dbCast str = maybeToEither "Failed to parse a string from '\{str}'" . toIdris @{getSafeCast PString} $ Raw str
 
 export
 DBStringCast JSON where
-  dbCast str = maybeToEither "Failed to parse json from '\{str}'" . safeCast @{getSafeCast PJson} $ Raw str
+  dbCast str = maybeToEither "Failed to parse json from '\{str}'" . toIdris @{getSafeCast PJson} $ Raw str
 
 export
 DBStringCast a => DBStringCast (List a) where
   dbCast str = traverse dbCast <=< maybeToEither "Failed to parse an array '\{str}'" $ parseArray str
 
 export
-[ValueCastString] ValueCast pt ty => DBStringCast ty where
-  dbCast str = maybeToEither "Failed to parse '\{str}' as expected type." . safeCast {pt} $ Raw str
+[IdrCastString] IdrCast pt ty => DBStringCast ty where
+  dbCast str = maybeToEither "Failed to parse '\{str}' as expected type." . toIdris {pt} $ Raw str
 
 public export
 data Castable : Type -> Type where

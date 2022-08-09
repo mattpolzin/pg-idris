@@ -203,7 +203,7 @@ expectedQuery : {cols : Nat}
 expectedQuery expected query (MkConnection conn types) = pgResultQuery expected query conn
 
 export
-tableQuery : PostgresTable t => {n : _} -> (table : t) -> (cols : Vect n (String, Type)) -> HasMappings table cols =>
+tableQuery : PostgresTable t => {n : _} -> (table : t) -> (cols : Vect n (String, Type)) -> HasMappings IdrCast table cols =>
                 Connection 
              -> IO (Either String (rowCount ** Vect rowCount (HVect (Builtin.snd <$> cols))))
 tableQuery table cols @{mappings} conn with (select table cols @{mappings})

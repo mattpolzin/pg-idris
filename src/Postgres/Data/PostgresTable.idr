@@ -43,8 +43,18 @@ record RuntimeTable where
   columns : List (String, Exists PColType)
 
 export
-implementation PostgresTable RuntimeTable where
+PostgresTable RuntimeTable where
   tableStatement = .tableStatement
+  columns = .columns
+
+public export
+record PersistedTable where
+  tableName : String
+  columns : List (String, Exists PColType)
+
+export
+PostgresTable PersistedTable where
+  tableStatement = Identifier . tableName
   columns = .columns
 
 public export
@@ -55,19 +65,19 @@ col nullable pt = Evidence pt (MkColType nullable pt)
 ||| and Postgres types. This mapping proves that the column names exists and that the Postgres
 ||| type for that column can be cast to the Idris type specified.
 public export
-data ColumnMapping : List (String, Exists PColType) -> (String, Type) -> Type where
-  HereNul : (name : String) -> (ty : Type) -> ValueCast pt ty => ColumnMapping ((name, (Evidence pt (MkColType Nullable pt))) :: xs) (name, Maybe ty)
-  Here : (name : String) -> (ty : Type) -> ValueCast pt ty => ColumnMapping ((name, (Evidence pt (MkColType NonNullable pt))) :: xs) (name, ty)
-  There : ColumnMapping xs (name, ty) -> ColumnMapping (x :: xs) (name, ty)
+data ColumnMapping : (0 _ : PType -> Type -> Type) -> List (String, Exists PColType) -> (String, Type) -> Type where
+  HereNul : (name : String) -> (ty : Type) -> castTy pt ty => ColumnMapping castTy ((name, (Evidence pt (MkColType Nullable pt))) :: xs) (name, Maybe ty)
+  Here : (name : String) -> (ty : Type) -> castTy pt ty => ColumnMapping castTy ((name, (Evidence pt (MkColType NonNullable pt))) :: xs) (name, ty)
+  There : ColumnMapping castTy xs (name, ty) -> ColumnMapping castTy (x :: xs) (name, ty)
 
 public export
-HasMappings : PostgresTable t => (table : t) -> (cols : Vect n (String, Type)) -> Type
-HasMappings table cols = All (ColumnMapping (columns table)) cols
+HasMappings : (0 castTy : PType -> Type -> Type) -> PostgresTable t => (table : t) -> (cols : Vect n (String, Type)) -> Type
+HasMappings castTy table cols = All (ColumnMapping castTy (columns table)) cols
 
 ||| Create a select statement based on the columns you would like to grab from the
 ||| given table.
 public export
-select : PostgresTable t => (table : t) -> (cols : Vect n (String, Type)) -> (0 _ : HasMappings table cols) => String
+select : PostgresTable t => (table : t) -> (cols : Vect n (String, Type)) -> (0 _ : HasMappings IdrCast table cols) => String
 select table cols =
   let tableStatement = show $ tableStatement table
       columnNames    = join "," $ quoteColumn . fst <$> (toList cols)
@@ -75,6 +85,9 @@ select table cols =
   where
     quoteColumn : String -> String
     quoteColumn str = "\"\{str}\""
+
+public export
+insert : (table : PersistedTable) -> (cols : Vect n (String, Type)) -> (0 _ : HasMappings PGCast table cols) => String
 
 public export
 data Join : t1 -> t2 -> Type where
@@ -99,13 +112,13 @@ innerJoin table1 table2 joinOn =
       subquery = "SELECT * FROM \{table1Statement} JOIN \{table2Statement} ON \{table1JoinName} = \{table2JoinName}"
   in  RT (Subquery "tmp" subquery) ((columns table1) ++ (columns table2))
 
-mappingCastable : {cs : _} -> ColumnMapping cs (name, ty) => Castable ty
-mappingCastable {cs = ((name, Evidence pt (MkColType Nullable pt)) :: xs)} @{(HereNul name x @{sc})} = CastMaybe @{ValueCastString {pt}}
-mappingCastable {cs = ((name, Evidence pt (MkColType NonNullable pt)) :: xs)} @{(Here name ty @{sc})} = Cast @{ValueCastString {pt}}
+mappingCastable : {cs : _} -> ColumnMapping IdrCast cs (name, ty) => Castable ty
+mappingCastable {cs = ((name, Evidence pt (MkColType Nullable pt)) :: xs)} @{(HereNul name x @{sc})} = CastMaybe @{IdrCastString {pt}}
+mappingCastable {cs = ((name, Evidence pt (MkColType NonNullable pt)) :: xs)} @{(Here name ty @{sc})} = Cast @{IdrCastString {pt}}
 mappingCastable {cs = (x :: xs)} @{(There y)} = mappingCastable {cs=xs} @{y}
 
 export
-allCastable : PostgresTable t => {n : _} -> (table : t) -> {cols : Vect n _} -> HasMappings table cols => All Castable (Builtin.snd <$> cols)
+allCastable : PostgresTable t => {n : _} -> (table : t) -> {cols : Vect n _} -> HasMappings IdrCast table cols => All Castable (Builtin.snd <$> cols)
 allCastable @{_} _ {cols = []} @{[]} = []
 allCastable @{_} _ {cols = ((x, z) :: xs)} @{(y :: ys)} with (mappingCastable @{y})
   allCastable @{_} _ {cols = ((x, z) :: xs)} @{(y :: ys)} | prf = prf :: allCastable @{_} _ {cols=xs} @{ys}
