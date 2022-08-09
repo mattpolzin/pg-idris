@@ -15,31 +15,34 @@ export
 rawString : PValue t -> String
 rawString (Raw r) = r
 
+||| Represents an ability to cast a Postgres type of value (pt) to
+||| a particular Idris type (ty).
+||| @param pt A Postgres type to cast from.
+||| @param ty An Idris type to cast to.
 public export
-interface SafeCast ty1 ty2 where
-  constructor MkSafeCast
-  safeCast : ty1 -> Maybe ty2
+interface ValueCast pt ty where
+  safeCast : PValue pt -> Maybe ty
 
 -- Integer
 
 export
-SafeCast (PValue PInteger) Integer where
+ValueCast PInteger Integer where
   safeCast = parseInteger . rawString
 
 export
-SafeCast (PValue PInteger) Double where
+ValueCast PInteger Double where
   safeCast = parseDouble . rawString
 
 -- Double
 
 export
-SafeCast (PValue PDouble) Double where
+ValueCast PDouble Double where
   safeCast = parseDouble . rawString
   
 -- Char
 
 export
-SafeCast (PValue PChar) Char where
+ValueCast PChar Char where
   safeCast (Raw str) with (unpack str)
     safeCast (Raw str) | [c] = Just c
     safeCast (Raw str) | _ = Nothing
@@ -47,7 +50,7 @@ SafeCast (PValue PChar) Char where
 -- Boolean
 
 export
-SafeCast (PValue PBoolean) Bool where
+ValueCast PBoolean Bool where
   safeCast (Raw "t")     = Just True
   safeCast (Raw "f")     = Just False
   safeCast (Raw "true")  = Just True
@@ -69,13 +72,13 @@ Cast (PValue PString) String where
   cast = rawString
 
 export
-SafeCast (PValue PString) String where
+ValueCast PString String where
   safeCast = Just . cast
 
 -- JSON
 
 export
-SafeCast (PValue PJson) JSON where
+ValueCast PJson JSON where
   safeCast = parse . rawString
 
 -- TODO: UUID
@@ -83,7 +86,7 @@ SafeCast (PValue PJson) JSON where
 -- OID
 
 export
-SafeCast (PValue POid) Integer where
+ValueCast POid Integer where
   safeCast = parseInteger . rawString
 
 -- Arrays
@@ -97,14 +100,14 @@ parseArray str =
          pure . forget $ pack <$> (splitOn ',' middle)
 
 export
-SafeCast (PValue from) to => SafeCast (PValue (PArray from)) (List to) where
+ValueCast from to => ValueCast (PArray from) (List to) where
   safeCast (Raw rawString) = (parseArray rawString) >>= (traverse (safeCast . (Raw {p=from})))
 
 --
 -- Default Types
 --
 
-getSafeCast : (t1 : PType) -> SafeCast (PValue t1) t2 => SafeCast (PValue t1) t2
+getSafeCast : (t1 : PType) -> ValueCast t1 t2 => ValueCast t1 t2
 getSafeCast t1 @{safe} = safe
 
 export
@@ -143,8 +146,8 @@ DBStringCast a => DBStringCast (List a) where
   dbCast str = traverse dbCast <=< maybeToEither "Failed to parse an array '\{str}'" $ parseArray str
 
 export
-[SafeCastString] SafeCast (PValue t1) t2 => DBStringCast t2 where
-  dbCast str = maybeToEither "Failed to parse '\{str}' as expected type." . safeCast {ty1=PValue t1} $ Raw str
+[ValueCastString] ValueCast pt ty => DBStringCast ty where
+  dbCast str = maybeToEither "Failed to parse '\{str}' as expected type." . safeCast {pt} $ Raw str
 
 public export
 data Castable : Type -> Type where
