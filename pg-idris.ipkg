@@ -10,16 +10,16 @@ modules = Postgres
         , Postgres.Data
         , Postgres.Data.Conn
         , Postgres.Data.ConnectionStatus
-        , Postgres.Data.ResultStatus
         , Postgres.Data.PostgresTable
         , Postgres.Data.PostgresType
         , Postgres.Data.PostgresValue
+        , Postgres.Data.ResultStatus
         , Postgres.Exec
+        , Postgres.FFI.Utility
         , Postgres.LoadTypes
         , Postgres.Notification
         , Postgres.Query
         , Postgres.Result
-        , Postgres.Utility
 
 depends = contrib >= 0.5.1
         , indexed >= 0.0.9

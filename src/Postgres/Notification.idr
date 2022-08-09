@@ -1,7 +1,7 @@
 module Postgres.Notification
 
 import System.FFI
-import Postgres.Utility
+import Postgres.FFI.Utility
 import Postgres.Data.Conn
 import Postgres.Data.ResultStatus
 import Postgres.DB.Core

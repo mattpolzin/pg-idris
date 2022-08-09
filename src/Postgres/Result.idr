@@ -2,7 +2,7 @@ module Postgres.Result
 
 import public Data.Vect
 
-import Postgres.Utility
+import Postgres.FFI.Utility
 import Postgres.Data.ResultStatus
 import Postgres.Data.PostgresType
 import Data.Fin
