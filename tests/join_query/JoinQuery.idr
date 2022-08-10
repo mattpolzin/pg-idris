@@ -21,7 +21,7 @@ setupQuery21 : String
 setupQuery21 = "insert into public.table2 (f_i, extra1, extra2) values (1, 'hello', 'world')"
 
 table1 : RuntimeTable
-table1 = RT (Identifier "table1") [
+table1 = RT (named "table1") [
     ("i", col NonNullable PInteger)
   , ("d", col NonNullable PDouble)
   , ("b", col NonNullable PBoolean)
@@ -33,7 +33,7 @@ table1 = RT (Identifier "table1") [
   ]
 
 table2 : RuntimeTable
-table2 = RT (Identifier "table2") [
+table2 = RT (named "table2") [
     ("f_i", col NonNullable PInteger)
   , ("extra1", col NonNullable PString)
   , ("extra2", col NonNullable PString)

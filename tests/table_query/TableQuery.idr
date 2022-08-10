@@ -12,7 +12,7 @@ setupQuery2 : String
 setupQuery2 = "insert into public.table (i, d, b, t, c, j, ai, dm) values (1, 2.5, true, 'hello', 'c', '{\"hello\": \"world\"}', '{1,2,3}', null)"
 
 table : RuntimeTable
-table = RT ( Identifier "table") [
+table = RT (named "table") [
     ("i", col NonNullable PInteger)
   , ("d", col NonNullable PDouble)
   , ("b", col NonNullable PBoolean)

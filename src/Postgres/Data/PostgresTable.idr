@@ -14,16 +14,49 @@ import Data.String.Extra
 
 %default total
 
-||| Either an identifier (table name) or subquery (select statement).
 public export
-data TableStatement = Identifier String
-                    | ||| A subquery identified AS the first arguemnt and SELECTED by the second argument.
-                      Subquery String String
+data Ident = Id String
+
+%name Ident id, id2, id3
+
+export
+Show Ident where
+  show (Id name) = "\"\{name}\""
+
+public export
+data Alias = Named String
+           | Generated Nat
+
+export
+Show Alias where
+  show (Named str) = "\"\{str}\""
+  show (Generated k) = "_idr_t_\{show k}"
+
+maybeShowAlias : Maybe Alias -> String
+maybeShowAlias Nothing = ""
+maybeShowAlias (Just a) = " AS \{show a}"
+
+||| A table name or subquery.
+public export
+data TableStatement = ||| A table name.
+                      Identifier String (Maybe Alias)
+                    | ||| A subquery.
+                      Subquery String Alias
 
 export
 Show TableStatement where
-  show (Identifier n) = "\"\{n}\""
-  show (Subquery n str) = "(\{str}) AS \"\{n}\""
+  show (Identifier n a) = "\{show $ Id n}\{maybeShowAlias a}"
+  show (Subquery query a) = "(\{query}) AS \{show a}"
+
+||| Construct a table statement for a table with the given name.
+export
+named : String -> {default Nothing alias : Maybe Alias} -> TableStatement
+named str {alias} = Identifier str alias
+
+||| Construct a table statement using a subquery.
+export
+subquery : String -> Alias -> TableStatement
+subquery = Subquery
 
 ||| Some representation of a Postgres table.
 public export
@@ -33,6 +66,22 @@ interface PostgresTable t where
   ||| The columns this table offers. Column names should not include double quotes, even where they
   ||| are needed when written down in SQL statements.
   columns : t -> List (String, Exists PColType)
+
+export
+alias : PostgresTable t => (table : t) -> Maybe Alias
+alias table with (tableStatement table)
+  _ | (Identifier _ a) = a
+  _ | (Subquery _ a) = Just a
+
+||| Get the table identifier (quoted per SQL syntax) regardless
+||| of whether the identifier is a persisted table name or an
+||| alias.
+export
+tableIdentifier : PostgresTable t => (table : t) -> String
+tableIdentifier table with (tableStatement table)
+  tableIdentifier table | (Identifier str Nothing) = show $ Id str
+  tableIdentifier table | (Identifier str (Just a)) = show a
+  tableIdentifier table | (Subquery str a) = show a
 
 ||| A runtime representation of a table. These have string fields and table statements so as to not limit
 ||| themselves to nominal postgres tables; you can also represent joins naturally where the table statement is
@@ -53,12 +102,14 @@ public export
 record PersistedTable where
   constructor PT
   tableName : String
+  {default Nothing alias : Maybe Alias}
   columns : List (String, Exists PColType)
 
 export
 PostgresTable PersistedTable where
-  tableStatement = Identifier . tableName
   columns = .columns
+
+  tableStatement (PT n {alias} _) = named n {alias}
 
 public export
 col : (nullable : Nullability) -> (pt : PType) -> Exists PColType
@@ -93,15 +144,15 @@ public export
 select : PostgresTable t => (table : t) -> (cols : Vect n (String, Type)) -> (0 _ : HasMappings IdrCast table cols) => String
 select table cols =
   let tableStatement = show $ tableStatement table
-      columnNames    = join "," $ show . Identifier . fst <$> (toList cols)
+      columnNames    = join "," $ show . Id . fst <$> (toList cols)
   in  "SELECT \{columnNames} FROM \{tableStatement}"
 
 ||| Insert the given values into the given columns of a new row in the given table.
 public export
 insert : {n : _} -> (table : PersistedTable) -> (cols : Vect n String) -> {colTypes : Vect n Type} -> (values : HVect colTypes) -> HasMappings PGCast table (zip cols colTypes) => String
 insert table cols vs =
-  let tableIdentifier = show $ Identifier table.tableName
-      columnNames     = '(' <+ (join "," $ show . Identifier <$> (toList cols)) +> ')'
+  let tableIdentifier = show $ Id table.tableName
+      columnNames     = '(' <+ (join "," $ show . Id <$> (toList cols)) +> ')'
       valueStrings    = '(' <+ (join "," $ values table cols vs) +> ')'
   in  "INSERT INTO \{tableIdentifier} \{columnNames} VALUES \{valueStrings}"
   where
@@ -128,10 +179,19 @@ innerJoin : PostgresTable t => PostgresTable u => (table1 : t) -> (table2 : u) -
 innerJoin table1 table2 joinOn = 
   let table1Statement = show $ tableStatement table1
       table2Statement = show $ tableStatement table2
-      table1JoinName = "\{table1Statement}.\"\{column1 joinOn}\""
-      table2JoinName = "\{table1Statement}.\"\{column1 joinOn}\""
+      table1JoinName = "\{tableIdentifier table1}.\"\{column1 joinOn}\""
+      table2JoinName = "\{tableIdentifier table2}.\"\{column2 joinOn}\""
       subquery = "SELECT * FROM \{table1Statement} JOIN \{table2Statement} ON \{table1JoinName} = \{table2JoinName}"
-  in  RT (Subquery "tmp" subquery) ((columns table1) ++ (columns table2))
+  in  RT (Subquery subquery generatedAlias) ((columns table1) ++ (columns table2))
+  where
+    maxGeneratedAliasId : Maybe Alias -> Maybe Alias -> Nat
+    maxGeneratedAliasId (Just (Generated k)) (Just (Generated j)) = max k j
+    maxGeneratedAliasId _                    (Just (Generated j)) = j
+    maxGeneratedAliasId (Just (Generated k)) _                    = k
+    maxGeneratedAliasId _ _ = 0
+
+    generatedAlias : Alias
+    generatedAlias = Generated $ S $ maxGeneratedAliasId (alias table1) (alias table2)
 
 mappingCastable : {cs : _} -> ColumnMapping IdrCast cs (name, ty) => Castable ty
 mappingCastable {cs = ((name, Evidence pt (MkColType Nullable pt)) :: xs)} @{(HereNul name x @{sc})} = CastMaybe @{IdrCastString {pt}}

@@ -3,13 +3,13 @@ import Postgres.Data.PostgresTable
 import TestLib
 
 table1 : RuntimeTable
-table1 = RT (Identifier "table1") [
+table1 = RT (named "table1") [
     ("id"    , col NonNullable PInteger)
   , ("field1", col NonNullable PDouble)
   ]
 
 table2 : RuntimeTable
-table2 = RT (Identifier "table2") [
+table2 = RT (named "table2") [
     ("f_id"  , col NonNullable PInteger)
   , ("field2", col Nullable    PString)
   ]

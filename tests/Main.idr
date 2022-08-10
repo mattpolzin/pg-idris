@@ -10,6 +10,11 @@ compileTimeTests = MkTestPool "compile-time" [] Nothing [
   "join_statement"
 ]
 
+unitTests : TestPool
+unitTests = MkTestPool "unit" [] Nothing [
+  "double_join_statement"
+]
+
 integrationTests : TestPool
 integrationTests = MkTestPool "postgres" [] Nothing [
   -- database query tests
@@ -32,5 +37,5 @@ main = do
             liftIO' . putStrLn $ "Testing against " ++ config.databaseUrl
             dbSetup
     | False => exitError "Cannot run tests without test database."
-  runner [compileTimeTests, integrationTests]
+  runner [compileTimeTests, unitTests, integrationTests]
 
