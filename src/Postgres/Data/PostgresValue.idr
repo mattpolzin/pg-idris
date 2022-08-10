@@ -175,6 +175,12 @@ PGCast to from => PGCast (PArray to) (List from) where
                              then "'\{str}'"
                              else str
 
+-- Maybe
+
+export
+PGCast to (Maybe from) => PGCast to from where
+  toPostgres = toPostgres . Just
+
 --
 -- Default Types
 --
