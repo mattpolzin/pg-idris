@@ -6,6 +6,7 @@ import public Data.DPair
 import Postgres.Data.PostgresValue
 import Data.List
 import public Data.List.Elem
+import Data.HVect
 import Data.Vect
 import Data.Vect.Elem
 import public Data.Vect.Quantifiers
@@ -47,8 +48,10 @@ PostgresTable RuntimeTable where
   tableStatement = .tableStatement
   columns = .columns
 
+||| A persisted table is an actual named table in the database.
 public export
 record PersistedTable where
+  constructor PT
   tableName : String
   columns : List (String, Exists PColType)
 
@@ -70,9 +73,19 @@ data ColumnMapping : (0 _ : PType -> Type -> Type) -> List (String, Exists PColT
   Here : (name : String) -> (ty : Type) -> castTy pt ty => ColumnMapping castTy ((name, (Evidence pt (MkColType NonNullable pt))) :: xs) (name, ty)
   There : ColumnMapping castTy xs (name, ty) -> ColumnMapping castTy (x :: xs) (name, ty)
 
+Uninhabited (ColumnMapping _ [] _) where
+  uninhabited (HereNul _ _) impossible
+  uninhabited (Here _ _) impossible
+  uninhabited (There _) impossible
+
 public export
 HasMappings : (0 castTy : PType -> Type -> Type) -> PostgresTable t => (table : t) -> (cols : Vect n (String, Type)) -> Type
 HasMappings castTy table cols = All (ColumnMapping castTy (columns table)) cols
+
+toString : ColumnMapping PGCast table (colName, colType) -> colType -> String
+toString (HereNul name ty @{prf}) = \case Nothing => "null"; Just x => rawString $ toPostgres @{prf} x
+toString (Here name ty @{prf}) = rawString . toPostgres @{prf}
+toString (There y) = toString y
 
 ||| Create a select statement based on the columns you would like to grab from the
 ||| given table.
@@ -80,14 +93,20 @@ public export
 select : PostgresTable t => (table : t) -> (cols : Vect n (String, Type)) -> (0 _ : HasMappings IdrCast table cols) => String
 select table cols =
   let tableStatement = show $ tableStatement table
-      columnNames    = join "," $ quoteColumn . fst <$> (toList cols)
+      columnNames    = join "," $ show . Identifier . fst <$> (toList cols)
   in  "SELECT \{columnNames} FROM \{tableStatement}"
-  where
-    quoteColumn : String -> String
-    quoteColumn str = "\"\{str}\""
 
 public export
-insert : (table : PersistedTable) -> (cols : Vect n (String, Type)) -> (0 _ : HasMappings PGCast table cols) => String
+insert : {n : _} -> (table : PersistedTable) -> (cols : Vect n String) -> {colTypes : Vect n Type} -> (values : HVect colTypes) -> HasMappings PGCast table (zip cols colTypes) => String
+insert table cols vs =
+  let tableIdentifier = show $ Identifier table.tableName
+      columnNames     = '(' <+ (join "," $ show . Identifier <$> (toList cols)) +> ')'
+      valueStrings    = '(' <+ (join "," $ values table cols vs) +> ')'
+  in  "INSERT INTO \{tableIdentifier} \{columnNames} VALUES \{valueStrings}"
+  where
+    values : {n : _} -> (table : PersistedTable) -> (cols : Vect n String) -> {colTypes : Vect n Type} -> (values : HVect colTypes) -> HasMappings PGCast table (zip cols colTypes) => List String
+    values table [] {colTypes = []} vs @{mappings} = []
+    values table (x :: xs) {colTypes = (y :: ys)} (v :: vs) @{(m :: ms)} = toString m v :: values table xs {colTypes=ys} vs @{ms}
 
 public export
 data Join : t1 -> t2 -> Type where
