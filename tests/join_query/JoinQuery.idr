@@ -3,10 +3,10 @@ import Postgres.Data.PostgresTable
 import TestLib
 
 setupQuery00 : String
-setupQuery00 = "drop table if exists public.table1"
+setupQuery00 = "drop table if exists public.table2"
 
 setupQuery01 : String
-setupQuery01 = "drop table if exists public.table2"
+setupQuery01 = "drop table if exists public.table1"
 
 setupQuery10 : String
 setupQuery10 = "create table public.table1 (i integer not null unique, d float8 not null, b bool not null, t text not null, c char not null, j json not null, ai integer[] not null, dm float8)"

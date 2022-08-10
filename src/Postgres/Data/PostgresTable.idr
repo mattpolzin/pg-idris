@@ -96,6 +96,7 @@ select table cols =
       columnNames    = join "," $ show . Identifier . fst <$> (toList cols)
   in  "SELECT \{columnNames} FROM \{tableStatement}"
 
+||| Insert the given values into the given columns of a new row in the given table.
 public export
 insert : {n : _} -> (table : PersistedTable) -> (cols : Vect n String) -> {colTypes : Vect n Type} -> (values : HVect colTypes) -> HasMappings PGCast table (zip cols colTypes) => String
 insert table cols vs =
@@ -121,6 +122,7 @@ namespace Join
   column2 : Join t u -> String
   column2 (On c1 c2) = c2
 
+||| Construct a runtime table by joining two other tables on a specified column.
 public export
 innerJoin : PostgresTable t => PostgresTable u => (table1 : t) -> (table2 : u) -> (on : Join table1 table2) -> RuntimeTable
 innerJoin table1 table2 joinOn = 

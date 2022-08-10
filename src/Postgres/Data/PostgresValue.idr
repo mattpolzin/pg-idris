@@ -38,6 +38,14 @@ interface PGCast pt ty where
 -- Integer
 
 export
+IdrCast PInteger Int where
+  toIdris = parseInteger . rawString
+
+export
+PGCast PInteger Int where
+  toPostgres = Raw . show
+
+export
 IdrCast PInteger Integer where
   toIdris = parseInteger . rawString
 
@@ -49,6 +57,10 @@ export
 IdrCast PInteger Double where
   toIdris = parseDouble . rawString
 
+export
+PGCast PInteger Nat where
+  toPostgres = Raw . show
+
 -- Double
 
 export
@@ -57,6 +69,14 @@ IdrCast PDouble Double where
   
 export
 PGCast PDouble Double where
+  toPostgres = Raw . show
+
+export
+PGCast PDouble Integer where
+  toPostgres = Raw . show
+
+export
+PGCast PDouble Int where
   toPostgres = Raw . show
 
 -- Char
@@ -69,7 +89,7 @@ IdrCast PChar Char where
 
 export
 PGCast PChar Char where
-  toPostgres = Raw . singleton
+  toPostgres c = Raw $ "'\{String.singleton c}'"
 
 -- Boolean
 
@@ -106,7 +126,7 @@ IdrCast PString String where
 
 export
 PGCast PString String where
-  toPostgres = Raw
+  toPostgres s = Raw $ "'\{s}'"
 
 -- JSON
 
@@ -116,7 +136,7 @@ IdrCast PJson JSON where
 
 export
 PGCast PJson JSON where
-  toPostgres = Raw . show
+  toPostgres j = Raw $ "'\{show j}'"
 
 -- TODO: UUID
 
@@ -147,8 +167,13 @@ IdrCast from to => IdrCast (PArray from) (List to) where
 export
 PGCast to from => PGCast (PArray to) (List from) where
   toPostgres xs = 
-    let (Raw values) = concat . intersperse (Raw ",") $ toPostgres {pt=to} <$> xs
-    in Raw $ "{" ++ values ++ "}"
+    let values = concat . intersperse "," $ escaped . toPostgres {pt=to} <$> xs
+    in Raw $ "'{" ++ values ++ "}'"
+    where
+      escaped : PValue t -> String
+      escaped (Raw str) = if "'" `isPrefixOf` str
+                             then "'\{str}'"
+                             else str
 
 --
 -- Default Types

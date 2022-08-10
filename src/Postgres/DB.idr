@@ -202,10 +202,19 @@ expectedQuery : {cols : Nat}
              -> IO (Either String (rowCount ** Vect rowCount (HVect expected)))
 expectedQuery expected query (MkConnection conn types) = pgResultQuery expected query conn
 
+||| Query the given table in the database mapping each row to the given Idris type.
+||| @param table The table to query against.
+||| @param cols A Vect of tuples where the first element is a column name to select and
+|||             the second element is an Idris type to cast the column value to.
+||| @param conn A database connection.
 export
-tableQuery : PostgresTable t => {n : _} -> (table : t) -> (cols : Vect n (String, Type)) -> HasMappings IdrCast table cols =>
-                Connection 
-             -> IO (Either String (rowCount ** Vect rowCount (HVect (Builtin.snd <$> cols))))
+tableQuery : PostgresTable t =>
+             {n : _}
+          -> (table : t)
+          -> (cols : Vect n (String, Type))
+          -> HasMappings IdrCast table cols =>
+             (conn : Connection)
+          -> IO (Either String (rowCount ** Vect rowCount (HVect (Builtin.snd <$> cols))))
 tableQuery table cols @{mappings} conn with (select table cols @{mappings})
   tableQuery table cols @{mappings} conn | query =
     expectedQuery (snd <$> cols) query conn @{allCastable table}
@@ -217,6 +226,27 @@ tableQuery table cols @{mappings} conn with (select table cols @{mappings})
 export
 perform : (command : String) -> Connection -> IO ResultStatus
 perform cmd = pgExec (\c => withExecResult c cmd (pure . pgResultStatus))
+
+||| Insert the given values into the given table.
+||| @param table The table to insert into.
+||| @param cols A Vect of column names to insert into (does
+|||             not need to be every column in the table but
+|||             there is not currently protection against omitting
+|||             a column with no default value).
+||| @param values The values to insert.
+||| @param conn A database connection.
+export
+tableInsert : {n : _}
+           -> (table : PersistedTable)
+           -> (cols : Vect n String)
+           -> {colTypes : Vect n Type}
+           -> (values : HVect colTypes)
+           -> HasMappings PGCast table (zip cols colTypes) =>
+              (conn : Connection)
+           -> IO ResultStatus
+tableInsert table cols values conn with (insert table cols values)
+  tableInsert table cols values conn | query =
+    perform query conn
 
 ||| Start listening for notifications on the given channel.
 export
