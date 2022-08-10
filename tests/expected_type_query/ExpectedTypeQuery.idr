@@ -1,6 +1,9 @@
 import Postgres
 import TestLib
 
+setupQuery0 : String
+setupQuery0 = "drop table if exists public.expected_types"
+
 setupQuery1 : String
 setupQuery1 = "create table public.expected_types (i integer, d float8, b bool, t text, c char, j json, ai integer[], dm float8)"
 
@@ -12,7 +15,9 @@ testQuery = "select * from public.expected_types"
 
 main : IO ()
 main = 
-  ignore . withTestDB $ TransitionIndexed.Do.do
+  ignore . withTestDB $ TransitionIndexed.do
+    res0 <- exec $ perform setupQuery0
+    liftIO' . putStrLn $ show res0
     res1 <- exec $ perform setupQuery1
     liftIO' . putStrLn $ show res1
     res2 <- exec $ perform setupQuery2

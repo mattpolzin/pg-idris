@@ -1,6 +1,6 @@
 module Postgres.DB.Wait
 
-import Postgres.Utility
+import Postgres.FFI.Utility
 import Postgres.Data.Conn
 import Postgres.DB.Core
 

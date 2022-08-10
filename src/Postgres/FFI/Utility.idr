@@ -1,4 +1,4 @@
-module Postgres.Utility
+module Postgres.FFI.Utility
 
 import System.FFI
 

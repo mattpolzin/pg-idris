@@ -5,7 +5,7 @@ import public Data.Vect.Quantifiers
 import public Postgres.Data.PostgresValue
 import public Data.HVect
 
-import Postgres.Utility
+import Postgres.FFI.Utility
 import Postgres.Data.Conn
 import Postgres.Data.PostgresType
 import Postgres.Exec

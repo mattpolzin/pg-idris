@@ -1,6 +1,6 @@
 module Postgres.Exec
 
-import Postgres.Utility
+import Postgres.FFI.Utility
 import Postgres.Data.Conn
 import Postgres.Result
 
