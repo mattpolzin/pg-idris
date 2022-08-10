@@ -40,4 +40,6 @@ jobs:
         run: |
           echo "LD_LIBRARY_PATH=$(idris2 --libdir)/pg-idris/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV && \
           make test INTERACTIVE=''
+      - name: Check README
+        run: make check-readme
 

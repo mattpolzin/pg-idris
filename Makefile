@@ -8,7 +8,7 @@ INDEXED_VERSION = 0.0.9
 INDEXED_RELATIVE_DIR = indexed-${INDEXED_VERSION}
 IDRIS_LIB_DIR := $(shell ${IDRIS} --libdir)
 
-.PHONY: all deps build clean install test
+.PHONY: all deps build clean install test check-readme
 
 all: deps build
 
@@ -47,3 +47,7 @@ test:
 	$(IDRIS) --build pg-idris-tests.ipkg && \
 	$(IDRIS) --install pg-idris-tests.ipkg && \
 	./build/exec/test $(IDRIS) $(INTERACTIVE)
+
+check-readme:
+	idris2 -p contrib -p indexed -p pg-idris --check README.md
+
