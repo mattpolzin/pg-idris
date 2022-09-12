@@ -6,5 +6,6 @@
 /tests/**/output
 /Example/build/*
 libpg-idris
+libpg-idris.dylib
 *.d
 *.o
