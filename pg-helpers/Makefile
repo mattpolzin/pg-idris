@@ -49,7 +49,7 @@ $(TARGET)$(SHLIB_SUFFIX): $(OBJS)
 -include $(DEPS)
 
 %.d: %.c
-	@$(CPP) $(CFLAGS) $< -MM -MT $(@:.d=.o) >$@
+	@$(CPP) $(CFLAGS) $(CPPFLAGS) $< -MM -MT $(@:.d=.o) >$@
 
 .PHONY: clean
 
