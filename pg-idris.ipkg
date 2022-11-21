@@ -1,6 +1,11 @@
 package pg-idris
+authors = "Mathew Polzin"
+license = "MIT"
+brief = "Postgres support for Idris 2 programs compiled with the Chez Scheme backend."
 
 version = 0.0.3
+langversion >= 0.5.1
+
 sourcedir = "src"
 
 modules = Postgres
