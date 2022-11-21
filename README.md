@@ -1,6 +1,6 @@
 # pg-idris
 
-The beginnings of a Postgres library for Idris 2.
+Experimental Postgres library for Idris 2.
 
 Early days with no real plans for completion, but you might still find something here informative.
 
