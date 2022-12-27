@@ -37,24 +37,24 @@ else
   LDFLAGS += -fuse-ld=gold
 endif
 
-SRCS = $(wildcard *.c)
+SRCS = $(wildcard c/*.c)
 OBJS = $(SRCS:.c=.o)
 DEPS = $(OBJS:.o=.d)
 
-all: $(TARGET)$(SHLIB_SUFFIX)
+all: c/$(TARGET)$(SHLIB_SUFFIX)
 
-$(TARGET)$(SHLIB_SUFFIX): $(OBJS)
+c/$(TARGET)$(SHLIB_SUFFIX): $(OBJS)
 	$(CC) -shared $(LDFLAGS) -o $@ $^
 
 -include $(DEPS)
 
-%.d: %.c
+c/%.d: c/%.c
 	@$(CPP) $(CFLAGS) $(CPPFLAGS) $< -MM -MT $(@:.d=.o) >$@
 
 .PHONY: clean
 
 clean :
-	rm -f $(OBJS) $(TARGET)$(SHLIB_SUFFIX)
+	rm -f $(OBJS) c/$(TARGET)$(SHLIB_SUFFIX)
 
 cleandep: clean
 	rm -f $(DEPS)
@@ -63,4 +63,4 @@ cleandep: clean
 
 install:
 	@if ! [ -d $(INSTALLDIR) ]; then mkdir -p $(INSTALLDIR); fi
-	install $(TARGET)$(SHLIB_SUFFIX) $(wildcard *.h) $(INSTALLDIR)
+	install c/$(TARGET)$(SHLIB_SUFFIX) $(wildcard c/*.h) $(INSTALLDIR)

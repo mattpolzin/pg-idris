@@ -29,6 +29,6 @@ modules = Postgres
 depends = contrib >= 0.5.1
         , indexed >= 0.0.9
 
-prebuild = "make -C pg-helpers"
-postinstall = "make -C pg-helpers install"
-postclean = "make -C pg-helpers clean"
+prebuild = "make -C support"
+postinstall = "make -C support install"
+postclean = "make -C support clean"
