@@ -4,7 +4,8 @@ IDRIS := idris2
 TARGET = libpg-idris
 TARGET_VERSION ?= 0.0.3
 
-INSTALLDIR = `${IDRIS} --libdir`/pg-idris-${TARGET_VERSION}/lib
+INSTALLDIR = `${IDRIS} --libdir`/pg-idris-${TARGET_VERSION}
+LIBDIR = "${INSTALLDIR}/lib"
 
 LDFLAGS = -L$(shell pg_config --libdir) -lpq
 CPPFLAGS = -I$(shell pg_config --includedir)
@@ -62,5 +63,5 @@ cleandep: clean
 .PHONY: install
 
 install:
-	@if ! [ -d $(INSTALLDIR) ]; then mkdir -p $(INSTALLDIR); fi
-	install c/$(TARGET)$(SHLIB_SUFFIX) $(wildcard c/*.h) $(INSTALLDIR)
+	@if ! [ -d $(LIBDIR) ]; then mkdir -p $(LIBDIR); fi
+	install c/$(TARGET)$(SHLIB_SUFFIX) $(wildcard c/*.h) $(LIBDIR)
