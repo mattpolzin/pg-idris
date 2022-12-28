@@ -29,6 +29,6 @@ modules = Postgres
 depends = contrib >= 0.5.1
         , indexed >= 0.0.9
 
-prebuild = "make -C support"
-postinstall = "make -C support install"
-postclean = "make -C support clean"
+prebuild = "TARGET_VERSION=0.0.3 make -C support"
+postinstall = "TARGET_VERSION=0.0.3 make -C support install"
+postclean = "TARGET_VERSION=0.0.3 make -C support clean"
