@@ -60,7 +60,7 @@ pgStatus : Conn -> ConnectionStatus
 pgStatus (MkConn conn) = connectionStatus $ prim__dbStatus conn
 
 %foreign cHelper "connErrorMessage"
-         jsHelper "connErrorMessage"
+         jsHelper "PQerrorMessage"
 prim__dbErrorMessage : Ptr PGconn -> PrimIO String
 
 ||| Get an error message from Postgres when something goes wrong.

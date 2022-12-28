@@ -12,7 +12,7 @@ cHelper fn = "C:" ++ fn ++ ", libpg-idris"
 
 public export
 jsHelper : String -> String
-jsHelper fn = "node:support:" ++ fn ++ ",libpq"
+jsHelper fn = "node:require('libpq-bare')." ++ fn ++ ",libpq"
 
 export
 %foreign cHelper "string_value"
