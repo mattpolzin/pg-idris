@@ -87,6 +87,10 @@ nullable : PColType t -> Bool
 nullable (MkColType Nullable _) = True
 nullable (MkColType NonNullable _) = False
 
+public export
+makeNullable : PColType t -> PColType t
+makeNullable (MkColType _ t) = MkColType Nullable t
+
 --
 -- Format Code
 --
