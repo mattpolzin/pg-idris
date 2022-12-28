@@ -30,6 +30,7 @@ build:
 clean:
 	rm -rf ./depends
 	rm -rf ./build/deps
+	rm -rf ./tests/build
 	$(IDRIS) --clean $(PACKAGE)
 
 install:

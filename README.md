@@ -14,6 +14,8 @@ Currently supports:
 - Arbitrary string queries with response parsed as JSON.
 - Arbitrary string queries with result columns all interpreted as Strings.
 - String queries with result rows containing given expected Idris types.
+- Table queries (table dictates field names and types available to select or insert).
+  - Inner joins.
 - Listen for notifications on a particular channel.
 - Request next unprocessed notification.
 
@@ -22,6 +24,8 @@ Currently supports:
 This library currently depends on bleeding edge of the Idris 2 project. At any time you might need to build and install Idris 2 from its `main` branch in order to build and use this library.
 
 You also need `libpq` (the Postgres C client implementation) installed to run apps using this library and `libpq-dev` to build this library from source.
+
+If you want to use this library with the NodeJS backend for Idris 2, you will need both the `libpq` system libray and also the `@mattpolzin/libpq-bare` NodeJS library installed (see [install section](#install-the-nodejs-library) below. You will need [node-gyp](https://github.com/nodejs/node-gyp) to build the native component of the NodeJS `libpq-bare` library.
 
 To build and install this library you will need to have `clang` on MacOS (comes out of box) and `gcc` on Linux (depending on the distro might need to be installed).
 
@@ -35,6 +39,13 @@ You can take a look at the `Main.idr` and `example.ipkg` in the Example folder f
 
 ### Install the library
 Run `make install` to build and install the library. Make sure that the libraries install directory (`$(idris2 --libpath)/pg-idris/lib`) is in your `LD_LIBRARY_PATH` environment variable so that pg-idris can be found when building an app that uses it. An alternative is to copy the contents of that lib directory into the directory of any executable you build that depends on it.
+
+### Install the NodeJS library (optional)
+You only need to do this if you are targeting the NodeJS backend for Idris 2.
+
+You can install this library globally with `npm install -g @mattpolzin/libpq-bare` or you can install it locally to your current project with `npm install @mattpolzin/libpq-bare` or you can create a `package.json` file for your project if it doesn't already have one and specify a dependency on `@mattpolzin/libpq-bare` there.
+
+The important thing is that wherever you put your executable JS file (the thing Idris2 builds and by default dumps to `build/exec/<executable-name>`) you have a `node_modules` directory containing the `libpq-bare` NodeJS library (unless you've installed `libpq-bare` globally).
 
 ### Include the package
 When running `idris2`, pass the `-p pg-idris`, `-p indexed`, and `-p contrib` command line arguments.
@@ -217,6 +228,4 @@ execJoin = exec $
                 , ("location", String)
                 ]
 ```
-
-
 

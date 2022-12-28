@@ -39,7 +39,7 @@ prim__dbGetNextNotification : Ptr PGconn -> PrimIO (Ptr PGnotify)
 ||| NOTE: Unless you need to hold onto the PGnotify struct for longer,
 |||    call the notificationStruct function instead which will take care
 |||    of freeing memory for you.
-%foreign helper "notify_struct"
+%foreign cHelper "notify_struct"
 prim__dbNotifyStruct : Ptr PGnotify -> PGnotify
 
 %foreign libpq "PQfreemem"
@@ -53,7 +53,7 @@ notificationStruct ptr = let res = prim__dbNotifyStruct ptr in
                              do primIO $ prim__dbFreeNotifyStruct ptr
                                 pure res
 
-%foreign helper "is_null"
+%foreign cHelper "is_null"
 prim__isNullNotifyStruct : Ptr PGnotify -> Int
 
 isNullNotification : Ptr PGnotify -> Bool
