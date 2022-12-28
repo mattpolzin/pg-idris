@@ -13,6 +13,7 @@ export
 data PGresult : Type
 
 %foreign libpq "PQclear"
+         jsHelper "PQclear"
 prim__dbClearResult : Ptr PGresult -> PrimIO ()
 
 ||| The result of executing a command. See `Postgres.Exec`
@@ -58,6 +59,7 @@ resultStatus i =
        x => OTHER x
 
 %foreign libpq "PQresultStatus"
+         jsHelper "PQresultStatus"
 prim__dbResultStatus : Ptr PGresult -> Int
 
 export
@@ -77,6 +79,7 @@ pgResultSuccess res with (pgResultStatus res)
   pgResultSuccess _ | x = False
 
 %foreign libpq "PQresultErrorMessage"
+         jsHelper "PQresultErrorMessage"
 prim__dbResultErrorMessage : Ptr PGresult -> String
 
 ||| Get the Postgres error message for the given result or
@@ -92,9 +95,11 @@ pgResultErrorMessage result@(MkResult res) = case pgResultSuccess result of
 --
 
 %foreign libpq "PQntuples"
+         jsHelper "PQntuples"
 prim__dbResultRowCount : Ptr PGresult -> Int
 
 %foreign libpq "PQnfields"
+         jsHelper "PQnfields"
 prim__dbResultColCount : Ptr PGresult -> Int
 
 ||| Assumes the result is of type TUPLES_OK. Used
@@ -124,17 +129,21 @@ tupleResult res = case (pgResultStatus res) of
 --
 
 %foreign libpq "PQfname"
+         jsHelper "PQfname"
 prim__dbResultColName : Ptr PGresult -> (col : Int) -> String
 
 %foreign libpq "PQgetisnull"
+         jsHelper "PQgetisnull"
 prim__dbResultValueIsNull : Ptr PGresult -> (row : Int) -> (col : Int) -> Int
 
 %foreign libpq "PQfformat"
+         jsHelper "PQfformat"
 prim__dbResultColFormatCode : Ptr PGresult -> (col : Int) -> Int
 
 ||| Get the type of the column. The resulting Int is a Postgres OID.
 ||| Built-in data types are defined in the file src/include/catalog/pg_type.h
 %foreign libpq "PQftype"
+         jsHelper "PQftype"
 prim__dbResultColType : Ptr PGresult -> (col : Int) -> Int
 
 ||| Get the name of the given column for this tuple result.
@@ -169,6 +178,7 @@ pgResultSize : {r: Nat} -> {c: Nat} -> TupleResult r c -> (Nat, Nat)
 pgResultSize res = (r, c)
 
 %foreign libpq "PQgetvalue"
+         jsHelper "PQgetvalue"
 prim__dbResultValue : Ptr PGresult -> (row: Int) -> (col: Int) -> String
 
 ||| Get the result value at the given row and column as a String regardless

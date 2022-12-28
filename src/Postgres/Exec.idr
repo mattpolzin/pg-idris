@@ -5,6 +5,7 @@ import Postgres.Data.Conn
 import Postgres.Result
 
 %foreign libpq "PQexec"
+         jsHelper "PQexec"
 prim__dbExec : Ptr PGconn -> (command: String) -> PrimIO (Ptr PGresult)
 
 data ExecSource : Type where

@@ -4,7 +4,7 @@ import Postgres.FFI.Utility
 import Postgres.Data.Conn
 import Postgres.DB.Core
 
-%foreign helper "socket_wait"
+%foreign cHelper "socket_wait"
 prim__dbWait : Ptr PGconn -> PrimIO Int
 
 ||| Wait for something to happen on the given
