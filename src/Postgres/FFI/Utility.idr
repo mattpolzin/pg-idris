@@ -11,8 +11,8 @@ cHelper : String -> String
 cHelper fn = "C:" ++ fn ++ ", libpg-idris"
 
 public export
-jsHelper : String -> String
-jsHelper fn = "node:lambda:require('libpq-bare')." ++ fn
+nLibpq : String -> String
+nLibpq fn = "node:lambda:require('libpq-bare')." ++ fn
 
 export
 %foreign cHelper "string_value"

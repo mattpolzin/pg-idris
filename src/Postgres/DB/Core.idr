@@ -8,7 +8,7 @@ import Postgres.Data.ConnectionStatus
 -- Open Connection
 --
 %foreign libpq "PQconnectdb"
-         jsHelper "PQconnectdb"
+         nLibpq "PQconnectdb"
 prim__dbOpen : String -> PrimIO (Ptr PGconn)
 
 ||| Open a connection to a Postgres database.
@@ -25,7 +25,7 @@ pgOpen url = (map MkConn (primIO $ prim__dbOpen url))
 -- Close Connection
 --
 %foreign libpq "PQfinish"
-         jsHelper "PQfinish"
+         nLibpq "PQfinish"
 prim__dbClose : Ptr PGconn -> PrimIO ()
 
 ||| Close a connection to a Postgres database.
@@ -37,7 +37,7 @@ pgClose (MkConn conn) = primIO $ prim__dbClose conn
 -- Get Connection Status
 --
 %foreign libpq "PQstatus"
-         jsHelper "PQstatus"
+         nLibpq "PQstatus"
 prim__dbStatus : Ptr PGconn -> Int
 
 connectionStatus: Int -> ConnectionStatus
@@ -60,7 +60,7 @@ pgStatus : Conn -> ConnectionStatus
 pgStatus (MkConn conn) = connectionStatus $ prim__dbStatus conn
 
 %foreign cHelper "connErrorMessage"
-         jsHelper "PQerrorMessage"
+         nLibpq "PQerrorMessage"
 prim__dbErrorMessage : Ptr PGconn -> PrimIO String
 
 ||| Get an error message from Postgres when something goes wrong.
@@ -73,7 +73,7 @@ pgErrorMessage (MkConn conn) = primIO $ prim__dbErrorMessage conn
 --
 
 %foreign libpq "PQconsumeInput"
-         jsHelper "PQconsumeInput"
+         nLibpq "PQconsumeInput"
 prim__dbConsumeInput : Ptr PGconn -> PrimIO Int
 
 ||| Consume any input the server has delivered
