@@ -16,6 +16,7 @@ Currently supports:
 - String queries with result rows containing given expected Idris types.
 - Table queries (table dictates field names and types available to select or insert).
   - Inner joins.
+  - Left joins.
 - Listen for notifications on a particular channel.
 - Request next unprocessed notification.
 
@@ -212,7 +213,7 @@ execSelect = exec $
   DB.tableQuery table1 [("name", String), ("age", Maybe Integer)]
 ```
 
-You can also select results out of table joins (currently only inner-joins):
+You can also select results out of table joins (currently only inner-joins and left-joins):
 ```idris
 table2 : PersistedTable
 table2 = PT "second_table" [

@@ -6,21 +6,24 @@ import System
 import Postgres
 
 compileTimeTests : TestPool
-compileTimeTests = MkTestPool "compile-time" [] Nothing [
+compileTimeTests = MkTestPool "compile-time tests" [] Nothing [
   "join_statement"
+, "left_join_statement"
 ]
 
 unitTests : TestPool
-unitTests = MkTestPool "unit" [] Nothing [
+unitTests = MkTestPool "unit tests" [] Nothing [
   "double_join_statement"
+, "left_and_inner_join_statements"
 ]
 
 integrationTests : TestPool
-integrationTests = MkTestPool "postgres" [] Nothing [
+integrationTests = MkTestPool "integration tests with postgres" [] Nothing [
   -- database query tests
   "expected_type_query"
 , "table_query"
-, "join_query"
+, "inner_join_query"
+, "left_join_query"
 , "insert_query"
 ]
 

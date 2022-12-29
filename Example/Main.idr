@@ -1,7 +1,8 @@
 module Main
 
 import Postgres
-import Data.Strings
+import Postgres.Data.PostgresTable
+import Data.String
 import Data.String.Extra
 import Data.List
 import Data.HVect
@@ -55,19 +56,24 @@ showTables conn = do
   for_ rows $ \(schema :: table :: hasIndices :: []) => do
     putStrLn $ schema ++ "." ++ table ++ (if hasIndices then " (has indices)" else " (doesn't have indices)")
 
+functionsTable : PersistedTable
+functionsTable = PT "pg_proc" [ ("proname", col NonNullable PString)
+                              , ("proargnames", col Nullable (PArray PString))
+                              ]
+
 showFunctions : Connection -> IO ()
 showFunctions conn = do
-  Right (_ ** rows) <- expectedQuery [String, List String] "select proname, proargnames from pg_proc where proargnames != '{}' limit 10" conn
+  Right (_ ** rows) <- tableQuery functionsTable [("proname", String), ("proargnames", Maybe (List String))] conn
     | Left err => putStrLn err
   for_ rows $ \(name :: args :: []) => do
-    putStrLn $ name ++ "(" ++ (join ", " args) ++ ")"
+    putStrLn $ name ++ "(" ++ (join ", " (maybe [] id args)) ++ ")"
 
 describeFnTable : Connection -> IO ()
 describeFnTable conn = do
   describe "select * from pg_proc limit 1" conn
 
 run : Connection -> IO ()
-run conn = do
+run conn = Prelude.do
   putStrLn "Connected"
 
   COMMAND_OK <- listen "test_channel" conn
@@ -80,7 +86,7 @@ run conn = do
   putStrLn "4 => Describe pg_proc table."
   putStrLn "5 => Show Arbitrary SELECT Result Rows"
   putStrLn "6 => Show 10 tables."
-  putStrLn "7 => Show 10 functions."
+  putStrLn "7 => Show All functions."
   opt <- getLine
   case (stringToNatOrZ opt) of
        1 => do putStrLn "Enter SQL: "
@@ -100,7 +106,7 @@ run conn = do
 
 public export
 main : IO ()
-main = do
+main = Prelude.do
   putStrLn "postgres url:"
   url <- getLine
   putStrLn "starting up..."

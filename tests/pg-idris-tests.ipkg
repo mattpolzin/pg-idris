@@ -6,7 +6,7 @@ modules = Main,
 executable = test
 main = Main
 
-depends = contrib >= 0.5.1
-        , indexed >= 0.0.5
-        , pg-idris == 0.0.3
-        , test >= 0.5.1
+depends = contrib >= 0.6.0
+        , indexed >= 0.0.9
+        , pg-idris == 0.0.4
+        , test >= 0.6.0

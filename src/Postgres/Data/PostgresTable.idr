@@ -173,6 +173,17 @@ namespace Join
   column2 : Join t u -> String
   column2 (On c1 c2) = c2
 
+public export
+maxGeneratedAliasId : Maybe Alias -> Maybe Alias -> Nat
+maxGeneratedAliasId (Just (Generated k)) (Just (Generated j)) = max k j
+maxGeneratedAliasId _                    (Just (Generated j)) = j
+maxGeneratedAliasId (Just (Generated k)) _                    = k
+maxGeneratedAliasId _ _ = 0
+
+public export
+generatedJoinAlias : PostgresTable t => PostgresTable u => t -> u -> Alias
+generatedJoinAlias t u = Generated $ S $ maxGeneratedAliasId (alias t) (alias u)
+
 ||| Construct a runtime table by joining two other tables on a specified column.
 public export
 innerJoin : PostgresTable t => PostgresTable u => (table1 : t) -> (table2 : u) -> (on : Join table1 table2) -> RuntimeTable
@@ -184,14 +195,23 @@ innerJoin table1 table2 joinOn =
       subquery = "SELECT * FROM \{table1Statement} JOIN \{table2Statement} ON \{table1JoinName} = \{table2JoinName}"
   in  RT (Subquery subquery generatedAlias) ((columns table1) ++ (columns table2))
   where
-    maxGeneratedAliasId : Maybe Alias -> Maybe Alias -> Nat
-    maxGeneratedAliasId (Just (Generated k)) (Just (Generated j)) = max k j
-    maxGeneratedAliasId _                    (Just (Generated j)) = j
-    maxGeneratedAliasId (Just (Generated k)) _                    = k
-    maxGeneratedAliasId _ _ = 0
-
     generatedAlias : Alias
-    generatedAlias = Generated $ S $ maxGeneratedAliasId (alias table1) (alias table2)
+    generatedAlias = generatedJoinAlias table1 table2
+
+public export 
+leftJoin : PostgresTable t => PostgresTable u => (table1 : t) -> (table2 : u) -> (on : Join table1 table2) -> RuntimeTable
+leftJoin table1 table2 joinOn =
+  let table1Statement = show $ tableStatement table1
+      table2Statement = show $ tableStatement table2
+      table1JoinName = "\{tableIdentifier table1}.\"\{column1 joinOn}\""
+      table2JoinName = "\{tableIdentifier table2}.\"\{column2 joinOn}\""
+      subquery = "SELECT * FROM \{table1Statement} LEFT JOIN \{table2Statement} ON \{table1JoinName} = \{table2JoinName}"
+      table2Cols = mapSnd (bimap (\t => t) makeNullable) <$> columns table2
+      -- ^ need to make table2's columns possibly null because of the left-join.
+  in  RT (Subquery subquery generatedAlias) ((columns table1) ++ table2Cols)
+  where
+    generatedAlias : Alias
+    generatedAlias = generatedJoinAlias table1 table2
 
 mappingCastable : {cs : _} -> ColumnMapping IdrCast cs (name, ty) => Castable ty
 mappingCastable {cs = ((name, Evidence pt (MkColType Nullable pt)) :: xs)} @{(HereNul name x @{sc})} = CastMaybe @{IdrCastString {pt}}
