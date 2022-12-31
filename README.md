@@ -135,7 +135,7 @@ namespace CommandReference
   tableQuery : PostgresTable t =>
                {n : _}
             -> (table : t)
-            -> (cols : Vect n (String, Type))
+            -> (cols : Vect n (ColumnIdentifier, Type))
             -> HasMappings IdrCast table cols =>
                (conn : Connection)
             -> IO (Either String (rowCount ** Vect rowCount (HVect (Builtin.snd <$> cols))))
@@ -154,7 +154,7 @@ namespace CommandReference
              -> (cols : Vect n String)
              -> {colTypes : Vect n Type}
              -> (values : HVect colTypes)
-             -> HasMappings PGCast table (zip cols colTypes) =>
+             -> HasMappings PGCast table (zip (MkColumnId (aliasOrName table) <$> cols) colTypes) =>
                 (conn : Connection)
              -> IO ResultStatus
 
@@ -224,9 +224,9 @@ table2 = PT "second_table" [
 
 execJoin : Database ? Open (const Open)
 execJoin = exec $
-  DB.tableQuery (innerJoin table1 table2 (On "id" "first_table_id"))
-                [ ("name",     String)
-                , ("location", String)
+  DB.tableQuery (innerJoin table1 table2 (On "table1.id" "table2.first_table_id"))
+                [ ("table1.name",     String)
+                , ("table2.location", String)
                 ]
 ```
 

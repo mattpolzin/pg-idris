@@ -258,32 +258,12 @@ tableInsert : {n : _}
            -> (cols : Vect n ColumnIdentifier)
            -> {colTypes : Vect n Type}
            -> (values : HVect colTypes)
-           -> HasMappings PGCast table (zip cols colTypes) =>
+           -> HasInsertMappings PGCast table cols colTypes =>
               (conn : Connection)
            -> IO ResultStatus
 tableInsert table cols values conn with (insert table cols values)
   tableInsert table cols values conn | query =
     perform query conn
-
-namespace StringColumns
-  ||| Insert the given values into the given table.
-  ||| @param table The table to insert into.
-  ||| @param cols A Vect of column names to insert into (does
-  |||             not need to be every column in the table but
-  |||             there is not currently protection against omitting
-  |||             a column with no default value).
-  ||| @param values The values to insert.
-  ||| @param conn A database connection.
-  export
-  tableInsert' : {n : _}
-             -> (table : PersistedTable)
-             -> (cols : Vect n String)
-             -> {colTypes : Vect n Type}
-             -> (values : HVect colTypes)
-             -> HasMappings PGCast table (zip ((MkColumnId $ aliasOrName table) <$> cols) colTypes) =>
-                (conn : Connection)
-             -> IO ResultStatus
-  tableInsert' table cols values conn = tableInsert table ((MkColumnId $ aliasOrName table) <$> cols) values conn
 
 ||| Start listening for notifications on the given channel.
 export

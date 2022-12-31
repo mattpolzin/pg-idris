@@ -103,6 +103,22 @@ record ColumnIdentifier where
   sourceTable : Maybe Alias
   name : String
 
+public export
+replaceSource : Maybe Alias -> ColumnIdentifier -> ColumnIdentifier
+replaceSource newSource (MkColumnId _ name) = MkColumnId newSource name
+
+public export
+forgetSource : ColumnIdentifier -> ColumnIdentifier
+forgetSource = replaceSource Nothing
+
+public export
+data AnonymousColumnIdentifier : ColumnIdentifier -> Type where
+  Anon : AnonymousColumnIdentifier (MkColumnId Nothing _)
+
+public export
+AllAnonymous : Vect n ColumnIdentifier -> Type
+AllAnonymous xs = All AnonymousColumnIdentifier xs
+
 export
 Show ColumnIdentifier where
   show (MkColumnId sourceTable name) = "\{maybeShowAliasColumnPrefix sourceTable}\{show . Id $ name}"
@@ -131,16 +147,6 @@ alias = tableAlias . tableStatement
 public export
 aliasOrName : PostgresTable t => (table : t) -> Maybe Alias
 aliasOrName = map toAlias . tableAliasOrName . tableStatement
-
--- ||| Get the table identifier (quoted per SQL syntax) regardless
--- ||| of whether the identifier is a persisted table name or an
--- ||| alias.
--- export
--- tableIdentifier : PostgresTable t => (table : t) -> String
--- tableIdentifier table with (tableStatement table)
---   tableIdentifier table | (Identifier str Nothing) = show $ Id str
---   tableIdentifier table | (Identifier str (Just a)) = show a
---   tableIdentifier table | (Subquery str a) = show a
 
 ||| A runtime representation of a table. These have string fields and table statements so as to not limit
 ||| themselves to nominal postgres tables; you can also represent joins naturally where the table statement is
@@ -194,7 +200,7 @@ Uninhabited (ColumnMapping _ [] _) where
   uninhabited (There _) impossible
 
 public export
-HasMappings : (0 castTy : PType -> Type -> Type) -> PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> Type
+HasMappings : {n : _} -> (0 castTy : PType -> Type -> Type) -> PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> Type
 HasMappings castTy table cols = All (ColumnMapping castTy (columns table)) cols
 
 toString : ColumnMapping PGCast table (colName, colType) -> colType -> String
@@ -218,18 +224,31 @@ namespace StringColumns
   select' : PostgresTable t => (table : t) -> (cols : Vect n (String, Type)) -> (0 _ : HasMappings IdrCast table (mapFst (MkColumnId $ aliasOrName table) <$> cols)) => String
   select' table cols = select table (mapFst (MkColumnId $ aliasOrName table) <$> cols)
 
+public export
+HasInsertMappings : {n : _} -> (0 castTy : PType -> Type -> Type) -> (table : PersistedTable) -> (cols : Vect n ColumnIdentifier) -> (colTypes : Vect n Type) -> Type
+HasInsertMappings castTy table cols colTypes = Either (HasMappings {n} castTy table (zip cols colTypes)) (AllAnonymous cols, HasMappings {n} castTy table (zip (replaceSource (aliasOrName table) <$> cols) colTypes))
+
 ||| Insert the given values into the given columns of a new row in the given table.
 public export
-insert : {n : _} -> (table : PersistedTable) -> (cols : Vect n ColumnIdentifier) -> {colTypes : Vect n Type} -> (values : HVect colTypes) -> HasMappings PGCast table (zip cols colTypes) => String
-insert table cols vs =
+insert : {n : _}
+      -> (table : PersistedTable)
+      -> (cols : Vect n ColumnIdentifier)
+      -> {colTypes : Vect n Type}
+      -> (values : HVect colTypes)
+      -> HasInsertMappings PGCast table cols colTypes =>
+         String
+insert table cols vs @{mappings} =
   let tableIdentifier = show $ Id table.tableName
       columnNames     = '(' <+ (join "," $ show . .name <$> (toList cols)) +> ')'
-      valueStrings    = '(' <+ (join "," $ values table cols vs) +> ')'
+      values : List String = case mappings of
+                    (Left ms)  => values table cols vs
+                    (Right (_, ms)) => values table (replaceSource (aliasOrName table) <$> cols) vs @{ms}
+      valueStrings    = '(' <+ (join "," $ values) +> ')'
   in  "INSERT INTO \{tableIdentifier} \{columnNames} VALUES \{valueStrings}"
   where
-    values : {n : _} -> (table : PersistedTable) -> (cols : Vect n ColumnIdentifier) -> {colTypes : Vect n Type} -> (values : HVect colTypes) -> HasMappings PGCast table (zip cols colTypes) => List String
-    values table [] {colTypes = []} vs @{mappings} = []
-    values table (x :: xs) {colTypes = (y :: ys)} (v :: vs) @{(m :: ms)} = toString m v :: values table xs {colTypes=ys} vs @{ms}
+    values : {l : _} -> (table : PersistedTable) -> (cols : Vect l ColumnIdentifier) -> {colTypes : Vect l Type} -> (values : HVect colTypes) -> HasMappings PGCast table (zip cols colTypes) => List String
+    values table [] [] = []
+    values table (x :: xs) (v :: vs) @{m :: ms} = toString m v :: values table xs vs @{ms}
 
 namespace StringColumns
   ||| Insert the given values into the given columns of a new row in the given table.
@@ -269,8 +288,6 @@ innerJoin table1 table2 joinOn =
       table2Statement = show $ tableStatement table2
       table1JoinName = show $ column1 joinOn
       table2JoinName = show $ column2 joinOn
---       table1JoinName = "\{tableIdentifier table1}.\"\{name $ column1 joinOn}\""
---       table2JoinName = "\{tableIdentifier table2}.\"\{name $ column2 joinOn}\""
       subquery = "\{table1Statement} JOIN \{table2Statement} ON \{table1JoinName} = \{table2JoinName}"
       table1Cols = columns table1
       table2Cols = columns table2
@@ -286,8 +303,6 @@ leftJoin table1 table2 joinOn =
       table2Statement = show $ tableStatement table2
       table1JoinName = show $ column1 joinOn
       table2JoinName = show $ column2 joinOn
---       table1JoinName = "\{tableIdentifier table1}.\"\{name $ column1 joinOn}\""
---       table2JoinName = "\{tableIdentifier table2}.\"\{name $ column2 joinOn}\""
       subquery = "\{table1Statement} LEFT JOIN \{table2Statement} ON \{table1JoinName} = \{table2JoinName}"
       table1Cols = columns table1
       table2Cols = mapSnd (bimap (\t => t) makeNullable) <$> columns table2
