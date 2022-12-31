@@ -211,13 +211,30 @@ export
 tableQuery : PostgresTable t =>
              {n : _}
           -> (table : t)
-          -> (cols : Vect n (String, Type))
+          -> (cols : Vect n (ColumnIdentifier, Type))
           -> HasMappings IdrCast table cols =>
              (conn : Connection)
           -> IO (Either String (rowCount ** Vect rowCount (HVect (Builtin.snd <$> cols))))
 tableQuery table cols @{mappings} conn with (select table cols @{mappings})
   tableQuery table cols @{mappings} conn | query =
     expectedQuery (snd <$> cols) query conn @{allCastable table}
+
+
+namespace StringColumns
+  ||| Query the given table in the database mapping each row to the given Idris type.
+  ||| @param table The table to query against.
+  ||| @param cols A Vect of tuples where the first element is a column name to select and
+  |||             the second element is an Idris type to cast the column value to.
+  ||| @param conn A database connection.
+  export
+  tableQuery' : PostgresTable t =>
+               {n : _}
+            -> (table : t)
+            -> (cols : Vect n (String, Type))
+            -> HasMappings IdrCast table (mapFst (MkColumnId (aliasOrName table)) <$> cols) =>
+               (conn : Connection)
+            -> IO (Either String (rowCount ** Vect rowCount (HVect (Builtin.snd <$> (mapFst (MkColumnId (aliasOrName table)) <$> cols)))))
+  tableQuery' table cols conn = tableQuery table (mapFst (MkColumnId (aliasOrName table)) <$> cols) conn
 
 ||| Perform the given command and instead of parsing the response
 ||| just report the result status. This is useful when you don't
@@ -238,7 +255,7 @@ perform cmd = pgExec (\c => withExecResult c cmd (pure . pgResultStatus))
 export
 tableInsert : {n : _}
            -> (table : PersistedTable)
-           -> (cols : Vect n String)
+           -> (cols : Vect n ColumnIdentifier)
            -> {colTypes : Vect n Type}
            -> (values : HVect colTypes)
            -> HasMappings PGCast table (zip cols colTypes) =>
@@ -247,6 +264,26 @@ tableInsert : {n : _}
 tableInsert table cols values conn with (insert table cols values)
   tableInsert table cols values conn | query =
     perform query conn
+
+namespace StringColumns
+  ||| Insert the given values into the given table.
+  ||| @param table The table to insert into.
+  ||| @param cols A Vect of column names to insert into (does
+  |||             not need to be every column in the table but
+  |||             there is not currently protection against omitting
+  |||             a column with no default value).
+  ||| @param values The values to insert.
+  ||| @param conn A database connection.
+  export
+  tableInsert' : {n : _}
+             -> (table : PersistedTable)
+             -> (cols : Vect n String)
+             -> {colTypes : Vect n Type}
+             -> (values : HVect colTypes)
+             -> HasMappings PGCast table (zip ((MkColumnId $ aliasOrName table) <$> cols) colTypes) =>
+                (conn : Connection)
+             -> IO ResultStatus
+  tableInsert' table cols values conn = tableInsert table ((MkColumnId $ aliasOrName table) <$> cols) values conn
 
 ||| Start listening for notifications on the given channel.
 export

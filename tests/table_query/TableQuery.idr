@@ -23,7 +23,7 @@ table = RT (named "table") [
   , ("dm", col Nullable PDouble)
   ]
 
-testQuery : Vect ? (String, Type)
+testQuery : Vect ? (ColumnIdentifier, Type)
 testQuery = [
     ("i", Integer)
   , ("d", Double)

@@ -5,12 +5,14 @@ import public Data.DPair
 
 import Postgres.Data.PostgresValue
 import Data.List
+import public Data.List1
 import public Data.List.Elem
 import Data.HVect
 import Data.Vect
 import Data.Vect.Elem
 import public Data.Vect.Quantifiers
-import Data.String.Extra
+import public Data.String
+import public Data.String.Extra
 
 %default total
 
@@ -28,13 +30,34 @@ data Alias = Named String
            | Generated Nat
 
 export
-Show Alias where
-  show (Named str) = "\"\{str}\""
-  show (Generated k) = "_idr_t_\{show k}"
+aliasIdentifier : Alias -> Ident
+aliasIdentifier (Named str) = Id str
+aliasIdentifier (Generated k) = Id "_idr_t_\{show k}"
 
-maybeShowAlias : Maybe Alias -> String
-maybeShowAlias Nothing = ""
-maybeShowAlias (Just a) = " AS \{show a}"
+export
+Show Alias where
+  show = show . aliasIdentifier
+
+public export
+toAlias : Ident -> Alias
+toAlias (Id str) = Named str
+
+||| Show an AS statement fragment for the given
+||| alias.
+||| For a table alias of myTable this will be the string
+||| literal (including double-quotes and leading space but
+||| excluding single quotes): ' AS "myTable"'
+maybeShowAsAlias : Maybe Alias -> String
+maybeShowAsAlias Nothing = ""
+maybeShowAsAlias (Just a) = " AS \{show a}"
+
+||| Show an alias prefix for a fully qualified column.
+||| For a table aliased as myTable this will be the string
+||| literal (including double-quotes and trailing dot but
+||| excluding single quotes): '"myTable".'
+maybeShowAliasColumnPrefix : Maybe Alias -> String
+maybeShowAliasColumnPrefix Nothing = ""
+maybeShowAliasColumnPrefix (Just a) = "\{show a}."
 
 ||| A table name or subquery.
 public export
@@ -42,14 +65,30 @@ data TableStatement = ||| A table name.
                       Identifier String (Maybe Alias)
                     | ||| A subquery.
                       Subquery String Alias
+                    | ||| A fragment (can be selected against, but is not named or aliased)
+                      Fragment String
+
+public export
+tableAlias : TableStatement -> Maybe Alias
+tableAlias (Identifier str a) = a
+tableAlias (Subquery str a) = Just a
+tableAlias (Fragment str) = Nothing
+
+||| The table alias or name.
+public export
+tableAliasOrName : TableStatement -> Maybe Ident
+tableAliasOrName (Identifier name alias) = Just $ maybe (Id name) aliasIdentifier alias
+tableAliasOrName (Subquery _ alias) = Just $ aliasIdentifier alias
+tableAliasOrName (Fragment _) = Nothing
 
 export
 Show TableStatement where
-  show (Identifier n a) = "\{show $ Id n}\{maybeShowAlias a}"
+  show (Identifier n a) = "\{show $ Id n}\{maybeShowAsAlias a}"
   show (Subquery query a) = "(\{query}) AS \{show a}"
+  show (Fragment query) = query
 
 ||| Construct a table statement for a table with the given name.
-export
+public export
 named : String -> {default Nothing alias : Maybe Alias} -> TableStatement
 named str {alias} = Identifier str alias
 
@@ -58,6 +97,24 @@ export
 subquery : String -> Alias -> TableStatement
 subquery = Subquery
 
+public export
+record ColumnIdentifier where
+  constructor MkColumnId
+  sourceTable : Maybe Alias
+  name : String
+
+export
+Show ColumnIdentifier where
+  show (MkColumnId sourceTable name) = "\{maybeShowAliasColumnPrefix sourceTable}\{show . Id $ name}"
+
+public export
+FromString ColumnIdentifier where
+  fromString str =
+    case (split (== '.') str) of
+      (column ::: []) => MkColumnId Nothing column
+      (table ::: column@(x :: xs)) => MkColumnId (Just $ Named table) (join "." column)
+      -- ^ not great, just chooses not to handle x.y.z very well at all
+
 ||| Some representation of a Postgres table.
 public export
 interface PostgresTable t where
@@ -65,23 +122,25 @@ interface PostgresTable t where
   tableStatement : t -> TableStatement
   ||| The columns this table offers. Column names should not include double quotes, even where they
   ||| are needed when written down in SQL statements.
-  columns : t -> List (String, Exists PColType)
+  columns : t -> List (ColumnIdentifier, Exists PColType)
 
 export
 alias : PostgresTable t => (table : t) -> Maybe Alias
-alias table with (tableStatement table)
-  _ | (Identifier _ a) = a
-  _ | (Subquery _ a) = Just a
+alias = tableAlias . tableStatement
 
-||| Get the table identifier (quoted per SQL syntax) regardless
-||| of whether the identifier is a persisted table name or an
-||| alias.
-export
-tableIdentifier : PostgresTable t => (table : t) -> String
-tableIdentifier table with (tableStatement table)
-  tableIdentifier table | (Identifier str Nothing) = show $ Id str
-  tableIdentifier table | (Identifier str (Just a)) = show a
-  tableIdentifier table | (Subquery str a) = show a
+public export
+aliasOrName : PostgresTable t => (table : t) -> Maybe Alias
+aliasOrName = map toAlias . tableAliasOrName . tableStatement
+
+-- ||| Get the table identifier (quoted per SQL syntax) regardless
+-- ||| of whether the identifier is a persisted table name or an
+-- ||| alias.
+-- export
+-- tableIdentifier : PostgresTable t => (table : t) -> String
+-- tableIdentifier table with (tableStatement table)
+--   tableIdentifier table | (Identifier str Nothing) = show $ Id str
+--   tableIdentifier table | (Identifier str (Just a)) = show a
+--   tableIdentifier table | (Subquery str a) = show a
 
 ||| A runtime representation of a table. These have string fields and table statements so as to not limit
 ||| themselves to nominal postgres tables; you can also represent joins naturally where the table statement is
@@ -90,7 +149,7 @@ public export
 record RuntimeTable where
   constructor RT
   tableStatement : TableStatement
-  columns : List (String, Exists PColType)
+  columns : List (ColumnIdentifier, Exists PColType)
 
 export
 PostgresTable RuntimeTable where
@@ -105,9 +164,14 @@ record PersistedTable where
   {default Nothing alias : Maybe Alias}
   columns : List (String, Exists PColType)
 
+namespace PersistedTable
+  public export
+  aliasOrName : (table : PersistedTable) -> Alias
+  aliasOrName (PT tableName {alias} columns) = maybe (toAlias $ Id tableName) id alias
+
 export
 PostgresTable PersistedTable where
-  columns = .columns
+  columns table = mapFst (MkColumnId (Just . aliasOrName $ table)) <$> table.columns
 
   tableStatement (PT n {alias} _) = named n {alias}
 
@@ -115,14 +179,14 @@ public export
 col : (nullable : Nullability) -> (pt : PType) -> Exists PColType
 col nullable pt = Evidence pt (MkColType nullable pt)
 
-||| A mapping between a column name and Idris type to some element in a list of column names
-||| and Postgres types. This mapping proves that the column names exists and that the Postgres
+||| A mapping between a column name and Idris type to some element in a list of column identifiers
+||| and Postgres types. This mapping proves that the column identifiers exists and that the Postgres
 ||| type for that column can be cast to the Idris type specified.
 public export
-data ColumnMapping : (0 _ : PType -> Type -> Type) -> List (String, Exists PColType) -> (String, Type) -> Type where
-  HereNul : (name : String) -> (ty : Type) -> castTy pt ty => ColumnMapping castTy ((name, (Evidence pt (MkColType Nullable pt))) :: xs) (name, Maybe ty)
-  Here : (name : String) -> (ty : Type) -> castTy pt ty => ColumnMapping castTy ((name, (Evidence pt (MkColType NonNullable pt))) :: xs) (name, ty)
-  There : ColumnMapping castTy xs (name, ty) -> ColumnMapping castTy (x :: xs) (name, ty)
+data ColumnMapping : (0 _ : PType -> Type -> Type) -> List (ColumnIdentifier, Exists PColType) -> (ColumnIdentifier, Type) -> Type where
+  HereNul : (ident : ColumnIdentifier) -> (ty : Type) -> castTy pt ty => ColumnMapping castTy ((ident, (Evidence pt (MkColType Nullable pt))) :: xs) (ident, Maybe ty)
+  Here : (ident : ColumnIdentifier) -> (ty : Type) -> castTy pt ty => ColumnMapping castTy ((ident, (Evidence pt (MkColType NonNullable pt))) :: xs) (ident, ty)
+  There : ColumnMapping castTy xs (ident, ty) -> ColumnMapping castTy (x :: xs) (ident, ty)
 
 Uninhabited (ColumnMapping _ [] _) where
   uninhabited (HereNul _ _) impossible
@@ -130,7 +194,7 @@ Uninhabited (ColumnMapping _ [] _) where
   uninhabited (There _) impossible
 
 public export
-HasMappings : (0 castTy : PType -> Type -> Type) -> PostgresTable t => (table : t) -> (cols : Vect n (String, Type)) -> Type
+HasMappings : (0 castTy : PType -> Type -> Type) -> PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> Type
 HasMappings castTy table cols = All (ColumnMapping castTy (columns table)) cols
 
 toString : ColumnMapping PGCast table (colName, colType) -> colType -> String
@@ -141,36 +205,49 @@ toString (There y) = toString y
 ||| Create a select statement based on the columns you would like to grab from the
 ||| given table.
 public export
-select : PostgresTable t => (table : t) -> (cols : Vect n (String, Type)) -> (0 _ : HasMappings IdrCast table cols) => String
+select : PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> (0 _ : HasMappings IdrCast table cols) => String
 select table cols =
   let tableStatement = show $ tableStatement table
-      columnNames    = join "," $ show . Id . fst <$> (toList cols)
+      columnNames    = join "," $ show . fst <$> (toList cols)
   in  "SELECT \{columnNames} FROM \{tableStatement}"
+
+namespace StringColumns
+  ||| Create a select statement based on the columns you would like to grab from the
+  ||| given table.
+  public export
+  select' : PostgresTable t => (table : t) -> (cols : Vect n (String, Type)) -> (0 _ : HasMappings IdrCast table (mapFst (MkColumnId $ aliasOrName table) <$> cols)) => String
+  select' table cols = select table (mapFst (MkColumnId $ aliasOrName table) <$> cols)
 
 ||| Insert the given values into the given columns of a new row in the given table.
 public export
-insert : {n : _} -> (table : PersistedTable) -> (cols : Vect n String) -> {colTypes : Vect n Type} -> (values : HVect colTypes) -> HasMappings PGCast table (zip cols colTypes) => String
+insert : {n : _} -> (table : PersistedTable) -> (cols : Vect n ColumnIdentifier) -> {colTypes : Vect n Type} -> (values : HVect colTypes) -> HasMappings PGCast table (zip cols colTypes) => String
 insert table cols vs =
   let tableIdentifier = show $ Id table.tableName
-      columnNames     = '(' <+ (join "," $ show . Id <$> (toList cols)) +> ')'
+      columnNames     = '(' <+ (join "," $ show . .name <$> (toList cols)) +> ')'
       valueStrings    = '(' <+ (join "," $ values table cols vs) +> ')'
   in  "INSERT INTO \{tableIdentifier} \{columnNames} VALUES \{valueStrings}"
   where
-    values : {n : _} -> (table : PersistedTable) -> (cols : Vect n String) -> {colTypes : Vect n Type} -> (values : HVect colTypes) -> HasMappings PGCast table (zip cols colTypes) => List String
+    values : {n : _} -> (table : PersistedTable) -> (cols : Vect n ColumnIdentifier) -> {colTypes : Vect n Type} -> (values : HVect colTypes) -> HasMappings PGCast table (zip cols colTypes) => List String
     values table [] {colTypes = []} vs @{mappings} = []
     values table (x :: xs) {colTypes = (y :: ys)} (v :: vs) @{(m :: ms)} = toString m v :: values table xs {colTypes=ys} vs @{ms}
 
+namespace StringColumns
+  ||| Insert the given values into the given columns of a new row in the given table.
+  public export
+  insert' : {n : _} -> (table : PersistedTable) -> (cols : Vect n String) -> {colTypes : Vect n Type} -> (values : HVect colTypes) -> HasMappings PGCast table (zip ((MkColumnId $ aliasOrName table) <$> cols) colTypes) => String
+  insert' table cols vs = insert table ((MkColumnId $ aliasOrName table) <$> cols) vs
+
 public export
 data Join : t1 -> t2 -> Type where
-  On : PostgresTable t => PostgresTable u => {t1 : t} -> {t2 : u} -> (c1 : String) -> (c2 : String) -> (0 _ : Elem c1 (Builtin.fst <$> (columns t1))) => (0 _ : Elem c2 (Builtin.fst <$> (columns t2))) => Join t1 t2
+  On : PostgresTable t => PostgresTable u => {t1 : t} -> {t2 : u} -> (c1 : ColumnIdentifier) -> (c2 : ColumnIdentifier) -> (0 _ : Elem c1 (Builtin.fst <$> (columns t1))) => (0 _ : Elem c2 (Builtin.fst <$> (columns t2))) => Join t1 t2
 
 namespace Join
   public export
-  column1 : Join t u -> String
+  column1 : Join t u -> ColumnIdentifier
   column1 (On c1 c2) = c1
 
   public export
-  column2 : Join t u -> String
+  column2 : Join t u -> ColumnIdentifier
   column2 (On c1 c2) = c2
 
 public export
@@ -190,10 +267,14 @@ innerJoin : PostgresTable t => PostgresTable u => (table1 : t) -> (table2 : u) -
 innerJoin table1 table2 joinOn = 
   let table1Statement = show $ tableStatement table1
       table2Statement = show $ tableStatement table2
-      table1JoinName = "\{tableIdentifier table1}.\"\{column1 joinOn}\""
-      table2JoinName = "\{tableIdentifier table2}.\"\{column2 joinOn}\""
-      subquery = "SELECT * FROM \{table1Statement} JOIN \{table2Statement} ON \{table1JoinName} = \{table2JoinName}"
-  in  RT (Subquery subquery generatedAlias) ((columns table1) ++ (columns table2))
+      table1JoinName = show $ column1 joinOn
+      table2JoinName = show $ column2 joinOn
+--       table1JoinName = "\{tableIdentifier table1}.\"\{name $ column1 joinOn}\""
+--       table2JoinName = "\{tableIdentifier table2}.\"\{name $ column2 joinOn}\""
+      subquery = "\{table1Statement} JOIN \{table2Statement} ON \{table1JoinName} = \{table2JoinName}"
+      table1Cols = columns table1
+      table2Cols = columns table2
+  in  RT (Fragment subquery) (table1Cols ++ table2Cols)
   where
     generatedAlias : Alias
     generatedAlias = generatedJoinAlias table1 table2
@@ -203,19 +284,22 @@ leftJoin : PostgresTable t => PostgresTable u => (table1 : t) -> (table2 : u) ->
 leftJoin table1 table2 joinOn =
   let table1Statement = show $ tableStatement table1
       table2Statement = show $ tableStatement table2
-      table1JoinName = "\{tableIdentifier table1}.\"\{column1 joinOn}\""
-      table2JoinName = "\{tableIdentifier table2}.\"\{column2 joinOn}\""
-      subquery = "SELECT * FROM \{table1Statement} LEFT JOIN \{table2Statement} ON \{table1JoinName} = \{table2JoinName}"
+      table1JoinName = show $ column1 joinOn
+      table2JoinName = show $ column2 joinOn
+--       table1JoinName = "\{tableIdentifier table1}.\"\{name $ column1 joinOn}\""
+--       table2JoinName = "\{tableIdentifier table2}.\"\{name $ column2 joinOn}\""
+      subquery = "\{table1Statement} LEFT JOIN \{table2Statement} ON \{table1JoinName} = \{table2JoinName}"
+      table1Cols = columns table1
       table2Cols = mapSnd (bimap (\t => t) makeNullable) <$> columns table2
       -- ^ need to make table2's columns possibly null because of the left-join.
-  in  RT (Subquery subquery generatedAlias) ((columns table1) ++ table2Cols)
+  in  RT (Fragment subquery) (table1Cols ++ table2Cols)
   where
     generatedAlias : Alias
     generatedAlias = generatedJoinAlias table1 table2
 
-mappingCastable : {cs : _} -> ColumnMapping IdrCast cs (name, ty) => Castable ty
-mappingCastable {cs = ((name, Evidence pt (MkColType Nullable pt)) :: xs)} @{(HereNul name x @{sc})} = CastMaybe @{IdrCastString {pt}}
-mappingCastable {cs = ((name, Evidence pt (MkColType NonNullable pt)) :: xs)} @{(Here name ty @{sc})} = Cast @{IdrCastString {pt}}
+mappingCastable : {cs : _} -> ColumnMapping IdrCast cs (ident, ty) => Castable ty
+mappingCastable {cs = ((ident, Evidence pt (MkColType Nullable pt)) :: xs)} @{(HereNul ident x @{sc})} = CastMaybe @{IdrCastString {pt}}
+mappingCastable {cs = ((ident, Evidence pt (MkColType NonNullable pt)) :: xs)} @{(Here ident ty @{sc})} = Cast @{IdrCastString {pt}}
 mappingCastable {cs = (x :: xs)} @{(There y)} = mappingCastable {cs=xs} @{y}
 
 export

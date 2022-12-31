@@ -20,8 +20,8 @@ setupQuery20 = "insert into public.table1 (i, d, b, t, c, j, ai, dm) values (1, 
 setupQuery21 : String
 setupQuery21 = "insert into public.table2 (f_i, extra1, extra2) values (1, 'hello', 'world')"
 
-table1 : RuntimeTable
-table1 = RT (named "table1") [
+table1 : PersistedTable
+table1 = PT "table1" [
     ("i", col NonNullable PInteger)
   , ("d", col NonNullable PDouble)
   , ("b", col NonNullable PBoolean)
@@ -32,25 +32,26 @@ table1 = RT (named "table1") [
   , ("dm", col Nullable PDouble)
   ]
 
+-- table 2 is a runtime table for no particular reason, just testing joining persisted & runtime together.
 table2 : RuntimeTable
 table2 = RT (named "table2") [
-    ("f_i", col NonNullable PInteger)
-  , ("extra1", col NonNullable PString)
-  , ("extra2", col NonNullable PString)
+    ("table2.f_i"   , col NonNullable PInteger)
+  , ("table2.extra1", col NonNullable PString)
+  , ("table2.extra2", col NonNullable PString)
   ]
 
-testQuery : Vect ? (String, Type)
+testQuery : Vect ? (ColumnIdentifier, Type)
 testQuery = [
-    ("i", Integer)
-  , ("d", Double)
-  , ("b", Bool)
-  , ("t", String)
-  , ("c", Char)
-  , ("j", JSON)
-  , ("ai", (List Integer))
-  , ("dm", Maybe Double)
-  , ("extra1", String)
-  , ("extra2", String)
+    ("table1.i", Integer)
+  , ("table1.d", Double)
+  , ("table1.b", Bool)
+  , ("table1.t", String)
+  , ("table1.c", Char)
+  , ("table1.j", JSON)
+  , ("table1.ai", (List Integer))
+  , ("table1.dm", Maybe Double)
+  , ("table2.extra1", String)
+  , ("table2.extra2", String)
   ]
 
 main : IO ()
@@ -68,7 +69,7 @@ main =
     liftIO' . putStrLn $ show res20
     res21 <- exec $ perform setupQuery21
     liftIO' . putStrLn $ show res21
-    Right (rows ** res3) <- exec $ tableQuery (innerJoin table1 table2 (On "i" "f_i")) testQuery
+    Right (rows ** res3) <- exec $ tableQuery (innerJoin table1 table2 (On "table1.i" "table2.f_i")) testQuery
       | Left err => liftIO' $ putStrLn err
     liftIO' . for_ res3 $ putStrLn . show
 

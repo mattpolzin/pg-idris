@@ -23,8 +23,8 @@ setupQuery21 = "insert into public.table1 (i, d, b, t, c, j, ai, dm) values (2, 
 setupQuery22 : String
 setupQuery22 = "insert into public.table2 (f_i, extra1, extra2) values (1, 'hello', 'world')"
 
-table1 : RuntimeTable
-table1 = RT (named "table1") [
+table1 : PersistedTable
+table1 = PT "table1" [
     ("i", col NonNullable PInteger)
   , ("d", col NonNullable PDouble)
   , ("b", col NonNullable PBoolean)
@@ -35,25 +35,25 @@ table1 = RT (named "table1") [
   , ("dm", col Nullable PDouble)
   ]
 
-table2 : RuntimeTable
-table2 = RT (named "table2") [
+table2 : PersistedTable
+table2 = PT "table2" [
     ("f_i", col NonNullable PInteger)
   , ("extra1", col NonNullable PString)
   , ("extra2", col NonNullable PString)
   ]
 
-testQuery : Vect ? (String, Type)
+testQuery : Vect ? (ColumnIdentifier, Type)
 testQuery = [
-    ("i", Integer)
-  , ("d", Double)
-  , ("b", Bool)
-  , ("t", String)
-  , ("c", Char)
-  , ("j", JSON)
-  , ("ai", (List Integer))
-  , ("dm", Maybe Double)
-  , ("extra1", Maybe String)
-  , ("extra2", Maybe String)
+    ("table1.i", Integer)
+  , ("table1.d", Double)
+  , ("table1.b", Bool)
+  , ("table1.t", String)
+  , ("table1.c", Char)
+  , ("table1.j", JSON)
+  , ("table1.ai", (List Integer))
+  , ("table1.dm", Maybe Double)
+  , ("table2.extra1", Maybe String)
+  , ("table2.extra2", Maybe String)
   ]
 
 main : IO ()
@@ -73,7 +73,7 @@ main =
     liftIO' . putStrLn $ show res21
     res22 <- exec $ perform setupQuery22
     liftIO' . putStrLn $ show res22
-    Right (rows ** res3) <- exec $ tableQuery (leftJoin table1 table2 (On "i" "f_i")) testQuery
+    Right (rows ** res3) <- exec $ tableQuery (leftJoin table1 table2 (On "table1.i" "table2.f_i")) testQuery
       | Left err => liftIO' $ putStrLn err
     liftIO' . for_ res3 $ putStrLn . show
 
