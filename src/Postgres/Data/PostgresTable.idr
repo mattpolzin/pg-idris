@@ -139,6 +139,10 @@ interface PostgresTable t where
   ||| The columns this table offers. Column names should not include double quotes, even where they
   ||| are needed when written down in SQL statements.
   columns : t -> List (ColumnIdentifier, Exists PColType)
+  ||| Set the alias on a table
+  as : t -> String -> t
+
+infix 0 `as`
 
 export
 alias : PostgresTable t => (table : t) -> Maybe Alias
@@ -157,10 +161,14 @@ record RuntimeTable where
   tableStatement : TableStatement
   columns : List (ColumnIdentifier, Exists PColType)
 
-export
+public export
 PostgresTable RuntimeTable where
   tableStatement = .tableStatement
   columns = .columns
+
+  as (RT (Identifier str x) columns) a = RT (Identifier str (Just $ Named a)) (mapFst (replaceSource . Just $ Named a) <$> columns)
+  as (RT (Subquery str x) columns) a = RT (Subquery str (Named a)) (mapFst (replaceSource . Just $ Named a) <$> columns)
+  as (RT (Fragment str) columns) a = RT (Subquery "SELECT * FROM \{str}" (Named a)) (mapFst (replaceSource . Just $ Named a) <$> columns)
 
 ||| A persisted table is an actual named table in the database.
 public export
@@ -175,11 +183,13 @@ namespace PersistedTable
   aliasOrName : (table : PersistedTable) -> Alias
   aliasOrName (PT tableName {alias} columns) = maybe (toAlias $ Id tableName) id alias
 
-export
+public export
 PostgresTable PersistedTable where
   columns table = mapFst (MkColumnId (Just . aliasOrName $ table)) <$> table.columns
 
   tableStatement (PT n {alias} _) = named n {alias}
+
+  as (PT tableName columns) a = PT tableName {alias=Just $ Named a} columns
 
 public export
 col : (nullable : Nullability) -> (pt : PType) -> Exists PColType
