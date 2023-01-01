@@ -22,8 +22,8 @@ table3 = PT "table3" [
 
 doubleJoin : RuntimeTable
 doubleJoin = (innerJoin
-               (innerJoin table1 table3 (On "table1.id" "table3.f_id"))
-               table2 (On "table1.id" "table2.f_id")
+               (innerJoin table1 table3 (on "id" "f_id"))
+               table2 (on "table1.id" "f_id")
              )
 
 -- we'll test the query compiles and then dump the select string value in the main function to compare golden values

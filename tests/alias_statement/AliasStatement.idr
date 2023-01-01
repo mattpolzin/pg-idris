@@ -16,11 +16,11 @@ table2 = PT "table2" [
 
 query1 : Connection -> IO (Either String (rowCount ** Vect rowCount (HVect [Double, Maybe String])))
 query1 = tableQuery
-           (innerJoin (table1 `as` "t") (table2 `as` "o") (On "t.id" "o.f_id"))
+           (innerJoin (table1 `as` "t") (table2 `as` "o") (on "t.id" "o.f_id"))
            [("t.field1", Double), ("o.field2", Maybe String)]
 
 joinedTables : RuntimeTable
-joinedTables = innerJoin table1 table2 (On "table1.id" "table2.f_id") `as` "hello"
+joinedTables = innerJoin table1 table2 (on "table1.id" "table2.f_id") `as` "hello"
 
 query2 : Connection -> IO (Either String (rowCount ** Vect rowCount (HVect [Double, Maybe String])))
 query2 = tableQuery (joinedTables `as` "new") [("new.field1", Double), ("new.field2", Maybe String)]

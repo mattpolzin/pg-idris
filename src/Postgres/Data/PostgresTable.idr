@@ -260,15 +260,27 @@ insert table cols vs @{mappings} =
     values table [] [] = []
     values table (x :: xs) (v :: vs) @{m :: ms} = toString m v :: values table xs vs @{ms}
 
-namespace StringColumns
-  ||| Insert the given values into the given columns of a new row in the given table.
-  public export
-  insert' : {n : _} -> (table : PersistedTable) -> (cols : Vect n String) -> {colTypes : Vect n Type} -> (values : HVect colTypes) -> HasMappings PGCast table (zip ((MkColumnId $ aliasOrName table) <$> cols) colTypes) => String
-  insert' table cols vs = insert table ((MkColumnId $ aliasOrName table) <$> cols) vs
-
 public export
 data Join : t1 -> t2 -> Type where
   On : PostgresTable t => PostgresTable u => {t1 : t} -> {t2 : u} -> (c1 : ColumnIdentifier) -> (c2 : ColumnIdentifier) -> (0 _ : Elem c1 (Builtin.fst <$> (columns t1))) => (0 _ : Elem c2 (Builtin.fst <$> (columns t2))) => Join t1 t2
+
+public export
+HasOnMapping : ColumnIdentifier -> PostgresTable t =>  (table : t) -> Type
+HasOnMapping c table = Either (Elem c (fst <$> (columns table))) (AnonymousColumnIdentifier c, Elem (replaceSource (aliasOrName table) c) (fst <$> (columns table)))
+
+public export
+elemForOnMapping : PostgresTable t => (table : t) -> (c : ColumnIdentifier) -> HasOnMapping c table -> (c' ** Elem c' (Builtin.fst <$> (columns table)))
+elemForOnMapping table c (Left m) = (c ** m)
+elemForOnMapping table c (Right (_, m)) = (replaceSource (aliasOrName table) c ** m)
+
+public export
+on : PostgresTable t => PostgresTable u => {t1 : t} -> {t2 : u} -> (c1 : ColumnIdentifier) -> (c2 : ColumnIdentifier) -> {auto on1 : HasOnMapping c1 t1} -> {auto on2 : HasOnMapping c2 t2} -> Join t1 t2
+on c1 c2 {on1} {on2} with (elemForOnMapping t1 c1 on1, elemForOnMapping t2 c2 on2)
+  on c1 c2 {on1} {on2} | ((c1' ** on1'), (c2' ** on2')) = On c1' c2'
+
+public export
+(==) : PostgresTable t => PostgresTable u => {t1 : t} -> {t2 : u} -> (c1 : ColumnIdentifier) -> (c2 : ColumnIdentifier) -> {auto on1 : HasOnMapping c1 t1} -> {auto on2 : HasOnMapping c2 t2} -> Join t1 t2
+(==) = on
 
 namespace Join
   public export

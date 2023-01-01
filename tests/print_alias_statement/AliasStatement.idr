@@ -38,11 +38,11 @@ testQuery = [
 -- we'll test the query compiles and then dump the select string value in the main function to compare golden values
 query1 : Connection -> IO (Either String (rowCount ** Vect rowCount ?))
 query1 = tableQuery
-           (leftJoin (table1 `as` "t") (table2 `as` "o") (On "t.i" "o.f_i") `as` "out")
+           (leftJoin (table1 `as` "t") (table2 `as` "o") (on "t.i" "o.f_i") `as` "out")
            testQuery
 
 main : IO ()
 main = do
   putStrLn "lots of alias in select statement: "
-  putStrLn $ select (leftJoin (table1 `as` "t") (table2 `as` "o") (On "t.i" "o.f_i") `as` "out") testQuery
+  putStrLn $ select (leftJoin (table1 `as` "t") (table2 `as` "o") (on "t.i" "o.f_i") `as` "out") testQuery
 
