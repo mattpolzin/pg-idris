@@ -212,7 +212,7 @@ tableQuery : PostgresTable t =>
              {n : _}
           -> (table : t)
           -> (cols : Vect n (ColumnIdentifier, Type))
-          -> HasMappings IdrCast table cols =>
+          -> HasSelectMappings IdrCast table cols =>
              (conn : Connection)
           -> IO (Either String (rowCount ** Vect rowCount (HVect (Builtin.snd <$> cols))))
 tableQuery table cols @{mappings} conn with (select table cols @{mappings})

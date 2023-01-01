@@ -38,6 +38,12 @@ export
 Show Alias where
   show = show . aliasIdentifier
 
+export
+Eq Alias where
+  (Named str) == (Named str') = str == str'
+  (Generated k) == (Generated k') = k == k'
+  _ == _ = False
+
 public export
 toAlias : Ident -> Alias
 toAlias (Id str) = Named str
@@ -197,17 +203,45 @@ col nullable pt = Evidence pt (MkColType nullable pt)
 
 ||| A mapping between a column name and Idris type to some element in a list of column identifiers
 ||| and Postgres types. This mapping proves that the column identifiers exists and that the Postgres
-||| type for that column can be cast to the Idris type specified.
+||| type for that column can be cast to the Idris type specified. This mapping allows for "loose"
+||| matches where the ColumnIdentifier being matched against does not specify a source table but the
+||| column name can be found in the list of columns given. Loose matching is only ok if the match would
+||| not succeed against multiple columns (Postgres will complain of ambiguity, for good reason). Use the
+||| ColumnMapping type to avoid loose matches.
 public export
-data ColumnMapping : (0 _ : PType -> Type -> Type) -> List (ColumnIdentifier, Exists PColType) -> (ColumnIdentifier, Type) -> Type where
-  HereNul : (ident : ColumnIdentifier) -> (ty : Type) -> castTy pt ty => ColumnMapping castTy ((ident, (Evidence pt (MkColType Nullable pt))) :: xs) (ident, Maybe ty)
-  Here : (ident : ColumnIdentifier) -> (ty : Type) -> castTy pt ty => ColumnMapping castTy ((ident, (Evidence pt (MkColType NonNullable pt))) :: xs) (ident, ty)
-  There : ColumnMapping castTy xs (ident, ty) -> ColumnMapping castTy (x :: xs) (ident, ty)
+data LooseColumnMapping : (0 _ : PType -> Type -> Type) -> List (ColumnIdentifier, Exists PColType) -> (ColumnIdentifier, Type) -> Type where
+  HereNul       : (ident : ColumnIdentifier) -> (ty : Type) -> castTy pt ty => LooseColumnMapping castTy ((ident, (Evidence pt (MkColType Nullable pt))) :: xs) (ident, Maybe ty)
+  HereNulLoose  : (columnName : String) -> (ty : Type) -> castTy pt ty => LooseColumnMapping castTy ((MkColumnId _ columnName, (Evidence pt (MkColType Nullable pt))) :: xs) (MkColumnId Nothing columnName, Maybe ty)
+  Here          : (ident : ColumnIdentifier) -> (ty : Type) -> castTy pt ty => LooseColumnMapping castTy ((ident, (Evidence pt (MkColType NonNullable pt))) :: xs) (ident, ty)
+  HereLoose     : (columnName : String) -> (ty : Type) -> castTy pt ty => LooseColumnMapping castTy ((MkColumnId _ columnName, (Evidence pt (MkColType NonNullable pt))) :: xs) (MkColumnId Nothing columnName, ty)
+  There         : LooseColumnMapping castTy xs (ident, ty) -> LooseColumnMapping castTy (x :: xs) (ident, ty)
 
-Uninhabited (ColumnMapping _ [] _) where
+Uninhabited (LooseColumnMapping _ [] _) where
   uninhabited (HereNul _ _) impossible
+  uninhabited (HereNulLoose _ _) impossible
   uninhabited (Here _ _) impossible
+  uninhabited (HereLoose _ _) impossible
   uninhabited (There _) impossible
+
+namespace Strict
+  public export
+  data ColumnMapping : (0 _ : PType -> Type -> Type) -> List (ColumnIdentifier, Exists PColType) -> (ColumnIdentifier, Type) -> Type where
+    HereNul       : (ident : ColumnIdentifier) -> (ty : Type) -> castTy pt ty => ColumnMapping castTy ((ident, (Evidence pt (MkColType Nullable pt))) :: xs) (ident, Maybe ty)
+    Here          : (ident : ColumnIdentifier) -> (ty : Type) -> castTy pt ty => ColumnMapping castTy ((ident, (Evidence pt (MkColType NonNullable pt))) :: xs) (ident, ty)
+    There         : ColumnMapping castTy xs (ident, ty) -> ColumnMapping castTy (x :: xs) (ident, ty)
+
+public export
+sameColumnNoSourceId : (ColumnIdentifier, Type) -> (ColumnIdentifier, Exists PColType) -> Bool
+sameColumnNoSourceId ((MkColumnId Nothing name), z) ((MkColumnId _ name'), w) = name == name'
+sameColumnNoSourceId ((MkColumnId (Just _) _), _) _ = False
+
+public export
+data UniqueCol : List (ColumnIdentifier, Exists PColType) -> (ColumnIdentifier, Type) -> Type where
+  IsUniqueCol : (xs : List (ColumnIdentifier, Exists PColType)) -> (y : (ColumnIdentifier, Type)) -> (So $ (count (sameColumnNoSourceId y) xs) == 1) -> UniqueCol xs y
+
+public export
+HasLooseMappings : {n : _} -> (0 castTy : PType -> Type -> Type) -> PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> Type
+HasLooseMappings castTy table cols = All (LooseColumnMapping castTy (columns table)) cols
 
 public export
 HasMappings : {n : _} -> (0 castTy : PType -> Type -> Type) -> PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> Type
@@ -218,21 +252,18 @@ toString (HereNul name ty @{prf}) = \case Nothing => "null"; Just x => rawString
 toString (Here name ty @{prf}) = rawString . toPostgres @{prf}
 toString (There y) = toString y
 
+public export
+HasSelectMappings : {n : _} -> (0 castTy : PType -> Type -> Type) -> PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> Type
+HasSelectMappings castTy table cols = Either (HasMappings IdrCast table cols) (All (UniqueCol (columns table)) cols, HasLooseMappings IdrCast table cols)
+
 ||| Create a select statement based on the columns you would like to grab from the
 ||| given table.
 public export
-select : PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> (0 _ : HasMappings IdrCast table cols) => String
+select : PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> (0 _ : HasSelectMappings IdrCast table cols) => String
 select table cols =
   let tableStatement = show $ tableStatement table
       columnNames    = join "," $ show . fst <$> (toList cols)
   in  "SELECT \{columnNames} FROM \{tableStatement}"
-
-namespace StringColumns
-  ||| Create a select statement based on the columns you would like to grab from the
-  ||| given table.
-  public export
-  select' : PostgresTable t => (table : t) -> (cols : Vect n (String, Type)) -> (0 _ : HasMappings IdrCast table (mapFst (MkColumnId $ aliasOrName table) <$> cols)) => String
-  select' table cols = select table (mapFst (MkColumnId $ aliasOrName table) <$> cols)
 
 public export
 HasInsertMappings : {n : _} -> (0 castTy : PType -> Type -> Type) -> (table : PersistedTable) -> (cols : Vect n ColumnIdentifier) -> (colTypes : Vect n Type) -> Type
@@ -339,9 +370,19 @@ mappingCastable {cs = ((ident, Evidence pt (MkColType Nullable pt)) :: xs)} @{(H
 mappingCastable {cs = ((ident, Evidence pt (MkColType NonNullable pt)) :: xs)} @{(Here ident ty @{sc})} = Cast @{IdrCastString {pt}}
 mappingCastable {cs = (x :: xs)} @{(There y)} = mappingCastable {cs=xs} @{y}
 
+mappingCastable' : {cs : _} -> LooseColumnMapping IdrCast cs (ident, ty) => Castable ty
+mappingCastable' {cs = ((ident, Evidence pt (MkColType Nullable pt)) :: xs)} @{(HereNul ident x @{sc})} = CastMaybe @{IdrCastString {pt}}
+mappingCastable' {cs = ((MkColumnId _ n, Evidence pt (MkColType Nullable pt)) :: xs)} @{(HereNulLoose n x @{sc})} = CastMaybe @{IdrCastString {pt}}
+mappingCastable' {cs = ((ident, Evidence pt (MkColType NonNullable pt)) :: xs)} @{(Here ident ty @{sc})} = Cast @{IdrCastString {pt}}
+mappingCastable' {cs = ((MkColumnId _ n, Evidence pt (MkColType NonNullable pt)) :: xs)} @{(HereLoose n ty @{sc})} = Cast @{IdrCastString {pt}}
+mappingCastable' {cs = (x :: xs)} @{(There y)} = mappingCastable' {cs=xs} @{y}
+
 export
-allCastable : PostgresTable t => {n : _} -> (table : t) -> {cols : Vect n _} -> HasMappings IdrCast table cols => All Castable (Builtin.snd <$> cols)
-allCastable @{_} _ {cols = []} @{[]} = []
-allCastable @{_} _ {cols = ((x, z) :: xs)} @{(y :: ys)} with (mappingCastable @{y})
-  allCastable @{_} _ {cols = ((x, z) :: xs)} @{(y :: ys)} | prf = prf :: allCastable @{_} _ {cols=xs} @{ys}
+allCastable : PostgresTable t => {n : _} -> (table : t) -> {cols : Vect n _} -> HasSelectMappings IdrCast table cols => All Castable (Builtin.snd <$> cols)
+allCastable @{_} _ {cols = []} @{Left []} = []
+allCastable @{_} _ {cols = []} @{Right (_, [])} = []
+allCastable @{_} _ {cols = ((x, z) :: xs)} @{Left (y :: ys)} with (mappingCastable @{y})
+  allCastable @{_} _ {cols = ((x, z) :: xs)} @{Left (y :: ys)} | prf = prf :: allCastable @{_} _ {cols=xs} @{Left ys}
+allCastable @{_} _ {cols = ((x, z) :: xs)} @{Right (m, (y :: ys))} with (mappingCastable' @{y})
+  allCastable @{_} _ {cols = ((x, z) :: xs)} @{Right ((m :: ms), (y :: ys))} | prf = prf :: allCastable @{_} _ {cols=xs} @{Right (ms, ys)}
 
