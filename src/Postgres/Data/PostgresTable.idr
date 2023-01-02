@@ -16,6 +16,9 @@ import public Data.String.Extra
 
 %default total
 
+||| A Postgres identifier, generally speaking. Could be a table name
+||| or a column name or more broadly speaking any proper name that
+||| Postgres syntactically recognizes between double-quotes.
 public export
 data Ident = Id String
 
@@ -25,10 +28,16 @@ export
 Show Ident where
   show (Id name) = "\"\{name}\""
 
+||| An Alias is a valid table identifier that may either
+||| be a string specified by the programmer or it may be
+||| auto-generated in the course of creating subqueries.
 public export
 data Alias = Named String
            | Generated Nat
 
+%name Alias alias, alias1, alias2
+
+||| Aliases can always be turned into identifiers.
 export
 aliasIdentifier : Alias -> Ident
 aliasIdentifier (Named str) = Id str
@@ -44,6 +53,10 @@ Eq Alias where
   (Generated k) == (Generated k') = k == k'
   _ == _ = False
 
+||| Turning an identifier into an alias is not inteded to be the lossless
+||| reversal of `aliasIdentifier`. An identifier will always become a named
+||| alias even if it was at one point a generated alias before being turned into
+||| an identifier.
 public export
 toAlias : Ident -> Alias
 toAlias (Id str) = Named str
@@ -103,6 +116,22 @@ export
 subquery : String -> Alias -> TableStatement
 subquery = Subquery
 
+||| A column is identified by its name and optionally the alias
+||| of a table the column comes from. In some situations the `sourceTable`
+||| for a column will be needed in order to unambiguously refer to one
+||| of a few columns in the same query with the same name.
+|||
+||| Generally it will be clunky to create ColumnIdentifiers using the type's
+||| consutrctor directly so most column identifiers will come from string values
+||| because ColumnIdentifier's `FromString` conformance allows Idris 2 to transform
+||| strings into ColumnIdentifiers. This allows for:
+||| - "table1.column1" = MkColumnId (Just $ Named "table1") "column1"
+||| - "column1" = MkColumnId Nothing "column1"
+|||
+||| Table aliases here do not necessarily need to refer to a table that has
+||| been given a Postgres alias (a la "(select ...) AS an_alias"). A normal table
+||| or view name is appropriate and can be turned into an alias for use in a column
+||| identifier with the `toAlias` function.
 public export
 record ColumnIdentifier where
   constructor MkColumnId
@@ -120,10 +149,6 @@ forgetSource = replaceSource Nothing
 public export
 data AnonymousColumnIdentifier : ColumnIdentifier -> Type where
   Anon : AnonymousColumnIdentifier (MkColumnId Nothing _)
-
-public export
-AllAnonymous : Vect n ColumnIdentifier -> Type
-AllAnonymous xs = All AnonymousColumnIdentifier xs
 
 export
 Show ColumnIdentifier where
@@ -145,7 +170,7 @@ interface PostgresTable t where
   ||| The columns this table offers. Column names should not include double quotes, even where they
   ||| are needed when written down in SQL statements.
   columns : t -> List (ColumnIdentifier, Exists PColType)
-  ||| Set the alias on a table
+  ||| Set the alias on a table.
   as : t -> String -> t
 
 infix 0 `as`
@@ -154,6 +179,9 @@ export
 alias : PostgresTable t => (table : t) -> Maybe Alias
 alias = tableAlias . tableStatement
 
+||| Get the alias or name of a table; prefer the alias, as a renamed table
+||| _should_ be referred to by its alias, but use the table's original name
+||| if one is available and there is no alias set.
 public export
 aliasOrName : PostgresTable t => (table : t) -> Maybe Alias
 aliasOrName = map toAlias . tableAliasOrName . tableStatement
@@ -176,7 +204,7 @@ PostgresTable RuntimeTable where
   as (RT (Subquery str x) columns) a = RT (Subquery str (Named a)) (mapFst (replaceSource . Just $ Named a) <$> columns)
   as (RT (Fragment str) columns) a = RT (Subquery "SELECT * FROM \{str}" (Named a)) (mapFst (replaceSource . Just $ Named a) <$> columns)
 
-||| A persisted table is an actual named table in the database.
+||| A persisted table is an actual named (or view) table in the database.
 public export
 record PersistedTable where
   constructor PT
@@ -197,9 +225,24 @@ PostgresTable PersistedTable where
 
   as (PT tableName columns) a = PT tableName {alias=Just $ Named a} columns
 
+||| Construct an existential column type from a Postgres type and its
+||| nullability.
 public export
 col : (nullable : Nullability) -> (pt : PType) -> Exists PColType
 col nullable pt = Evidence pt (MkColType nullable pt)
+
+||| Construct a persisted table representation (a table name and the names,
+||| types, and nullabilities of the columns of a table.)
+|||
+||| ```idris example
+||| myTable = table "table1" [ ("id"            , NonNullable, PInteger)
+|||                          , ("name"          , NonNullable, PString)
+|||                          , ("favorite_color", Nullable   , PString)
+|||                          ]
+||| ```
+public export
+table : (name : String) -> (columns : List (String, Nullability, PType)) -> PersistedTable
+table name columns = PT name (mapSnd (uncurry col) <$> columns)
 
 ||| A mapping between a column name and Idris type to some element in a list of column identifiers
 ||| and Postgres types. This mapping proves that the column identifiers exists and that the Postgres
@@ -216,58 +259,39 @@ data LooseColumnMapping : (0 _ : PType -> Type -> Type) -> List (ColumnIdentifie
   HereLoose     : (columnName : String) -> (ty : Type) -> castTy pt ty => LooseColumnMapping castTy ((MkColumnId _ columnName, (Evidence pt (MkColType NonNullable pt))) :: xs) (MkColumnId Nothing columnName, ty)
   There         : LooseColumnMapping castTy xs (ident, ty) -> LooseColumnMapping castTy (x :: xs) (ident, ty)
 
-Uninhabited (LooseColumnMapping _ [] _) where
-  uninhabited (HereNul _ _) impossible
-  uninhabited (HereNulLoose _ _) impossible
-  uninhabited (Here _ _) impossible
-  uninhabited (HereLoose _ _) impossible
-  uninhabited (There _) impossible
+public export
+HasLooseMappings : {n : _} -> (0 castTy : PType -> Type -> Type) -> PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> Type
+HasLooseMappings castTy table cols = All (LooseColumnMapping castTy (columns table)) cols
 
 namespace Strict
+  ||| A mapping between a column name and Idris type to some element in a list of column identifiers
+  ||| and Postgres types. This mapping proves that the column identifiers exists and that the Postgres
+  ||| type for that column can be cast to the Idris type specified.
   public export
   data ColumnMapping : (0 _ : PType -> Type -> Type) -> List (ColumnIdentifier, Exists PColType) -> (ColumnIdentifier, Type) -> Type where
     HereNul       : (ident : ColumnIdentifier) -> (ty : Type) -> castTy pt ty => ColumnMapping castTy ((ident, (Evidence pt (MkColType Nullable pt))) :: xs) (ident, Maybe ty)
     Here          : (ident : ColumnIdentifier) -> (ty : Type) -> castTy pt ty => ColumnMapping castTy ((ident, (Evidence pt (MkColType NonNullable pt))) :: xs) (ident, ty)
     There         : ColumnMapping castTy xs (ident, ty) -> ColumnMapping castTy (x :: xs) (ident, ty)
 
-public export
-sameColumnNoSourceId : (ColumnIdentifier, Type) -> (ColumnIdentifier, Exists PColType) -> Bool
-sameColumnNoSourceId ((MkColumnId Nothing name), z) ((MkColumnId _ name'), w) = name == name'
-sameColumnNoSourceId ((MkColumnId (Just _) _), _) _ = False
+  public export
+  HasMappings : {n : _} -> (0 castTy : PType -> Type -> Type) -> PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> Type
+  HasMappings castTy table cols = All (ColumnMapping castTy (columns table)) cols
 
-public export
-data UniqueCol : List (ColumnIdentifier, Exists PColType) -> (ColumnIdentifier, Type) -> Type where
-  IsUniqueCol : (xs : List (ColumnIdentifier, Exists PColType)) -> (y : (ColumnIdentifier, Type)) -> (So $ (count (sameColumnNoSourceId y) xs) == 1) -> UniqueCol xs y
-
-public export
-HasLooseMappings : {n : _} -> (0 castTy : PType -> Type -> Type) -> PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> Type
-HasLooseMappings castTy table cols = All (LooseColumnMapping castTy (columns table)) cols
-
-public export
-HasMappings : {n : _} -> (0 castTy : PType -> Type -> Type) -> PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> Type
-HasMappings castTy table cols = All (ColumnMapping castTy (columns table)) cols
-
-toString : ColumnMapping PGCast table (colName, colType) -> colType -> String
+toString : LooseColumnMapping PGCast table (colName, colType) -> colType -> String
 toString (HereNul name ty @{prf}) = \case Nothing => "null"; Just x => rawString $ toPostgres @{prf} x
+toString (HereNulLoose name ty @{prf}) = \case Nothing => "null"; Just x => rawString $ toPostgres @{prf} x
 toString (Here name ty @{prf}) = rawString . toPostgres @{prf}
+toString (HereLoose name ty @{prf}) = rawString . toPostgres @{prf}
 toString (There y) = toString y
-
-public export
-HasSelectMappings : {n : _} -> (0 castTy : PType -> Type -> Type) -> PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> Type
-HasSelectMappings castTy table cols = Either (HasMappings IdrCast table cols) (All (UniqueCol (columns table)) cols, HasLooseMappings IdrCast table cols)
 
 ||| Create a select statement based on the columns you would like to grab from the
 ||| given table.
 public export
-select : PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> (0 _ : HasSelectMappings IdrCast table cols) => String
+select : PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> (0 _ : HasMappings IdrCast table cols) => String
 select table cols =
   let tableStatement = show $ tableStatement table
       columnNames    = join "," $ show . fst <$> (toList cols)
   in  "SELECT \{columnNames} FROM \{tableStatement}"
-
-public export
-HasInsertMappings : {n : _} -> (0 castTy : PType -> Type -> Type) -> (table : PersistedTable) -> (cols : Vect n ColumnIdentifier) -> (colTypes : Vect n Type) -> Type
-HasInsertMappings castTy table cols colTypes = Either (HasMappings {n} castTy table (zip cols colTypes)) (AllAnonymous cols, HasMappings {n} castTy table (zip (replaceSource (aliasOrName table) <$> cols) colTypes))
 
 ||| Insert the given values into the given columns of a new row in the given table.
 public export
@@ -276,18 +300,16 @@ insert : {n : _}
       -> (cols : Vect n ColumnIdentifier)
       -> {colTypes : Vect n Type}
       -> (values : HVect colTypes)
-      -> HasInsertMappings PGCast table cols colTypes =>
+      -> HasLooseMappings PGCast table (zip cols colTypes) =>
          String
 insert table cols vs @{mappings} =
   let tableIdentifier = show $ Id table.tableName
       columnNames     = '(' <+ (join "," $ show . .name <$> (toList cols)) +> ')'
-      values : List String = case mappings of
-                    (Left ms)  => values table cols vs
-                    (Right (_, ms)) => values table (replaceSource (aliasOrName table) <$> cols) vs @{ms}
+      values = values table cols vs
       valueStrings    = '(' <+ (join "," $ values) +> ')'
   in  "INSERT INTO \{tableIdentifier} \{columnNames} VALUES \{valueStrings}"
   where
-    values : {l : _} -> (table : PersistedTable) -> (cols : Vect l ColumnIdentifier) -> {colTypes : Vect l Type} -> (values : HVect colTypes) -> HasMappings PGCast table (zip cols colTypes) => List String
+    values : {l : _} -> (table : PersistedTable) -> (cols : Vect l ColumnIdentifier) -> {colTypes : Vect l Type} -> (values : HVect colTypes) -> HasLooseMappings PGCast table (zip cols colTypes) => List String
     values table [] [] = []
     values table (x :: xs) (v :: vs) @{m :: ms} = toString m v :: values table xs vs @{ms}
 
@@ -304,6 +326,18 @@ elemForOnMapping : PostgresTable t => (table : t) -> (c : ColumnIdentifier) -> H
 elemForOnMapping table c (Left m) = (c ** m)
 elemForOnMapping table c (Right (_, m)) = (replaceSource (aliasOrName table) c ** m)
 
+||| In a join-statement, produce the clause that links the two tables together by
+||| a shared column. In pseudo-code: "table1 join table2 'on' col1 = col2".
+|||
+||| ```idris example
+||| innerJoin table1 table2 (on "col_from_table1" "col_from_table2")
+||| ```
+|||
+||| There is an alternative syntax supported using `==`:
+|||
+||| ```idris example
+||| innerJoin table1 table2 ("col_from_table1" == "col_from_table2")
+||| ```
 public export
 on : PostgresTable t => PostgresTable u => {t1 : t} -> {t2 : u} -> (c1 : ColumnIdentifier) -> (c2 : ColumnIdentifier) -> {auto on1 : HasOnMapping c1 t1} -> {auto on2 : HasOnMapping c2 t2} -> Join t1 t2
 on c1 c2 {on1} {on2} with (elemForOnMapping t1 c1 on1, elemForOnMapping t2 c2 on2)
@@ -322,18 +356,17 @@ namespace Join
   column2 : Join t u -> ColumnIdentifier
   column2 (On c1 c2) = c2
 
-public export
-maxGeneratedAliasId : Maybe Alias -> Maybe Alias -> Nat
-maxGeneratedAliasId (Just (Generated k)) (Just (Generated j)) = max k j
-maxGeneratedAliasId _                    (Just (Generated j)) = j
-maxGeneratedAliasId (Just (Generated k)) _                    = k
-maxGeneratedAliasId _ _ = 0
-
-public export
-generatedJoinAlias : PostgresTable t => PostgresTable u => t -> u -> Alias
-generatedJoinAlias t u = Generated $ S $ maxGeneratedAliasId (alias t) (alias u)
-
 ||| Construct a runtime table by joining two other tables on a specified column.
+|||
+||| ```idris example
+||| innerJoin table1 table2 (on "col_from_table1" "col_from_table2")
+||| ```
+|||
+||| There is an alternative syntax supported using `==`:
+|||
+||| ```idris example
+||| innerJoin table1 table2 ("col_from_table1" == "col_from_table2")
+||| ```
 public export
 innerJoin : PostgresTable t => PostgresTable u => (table1 : t) -> (table2 : u) -> (on : Join table1 table2) -> RuntimeTable
 innerJoin table1 table2 joinOn = 
@@ -345,10 +378,18 @@ innerJoin table1 table2 joinOn =
       table1Cols = columns table1
       table2Cols = columns table2
   in  RT (Fragment subquery) (table1Cols ++ table2Cols)
-  where
-    generatedAlias : Alias
-    generatedAlias = generatedJoinAlias table1 table2
 
+||| Construct a runtime table by inner-joining two other tables on a specified column.
+|||
+||| ```idris example
+||| leftJoin table1 table2 (on "col_from_table1" "col_from_table2")
+||| ```
+|||
+||| There is an alternative syntax supported using `==`:
+|||
+||| ```idris example
+||| leftJoin table1 table2 ("col_from_table1" == "col_from_table2")
+||| ```
 public export 
 leftJoin : PostgresTable t => PostgresTable u => (table1 : t) -> (table2 : u) -> (on : Join table1 table2) -> RuntimeTable
 leftJoin table1 table2 joinOn =
@@ -361,28 +402,14 @@ leftJoin table1 table2 joinOn =
       table2Cols = mapSnd (bimap (\t => t) makeNullable) <$> columns table2
       -- ^ need to make table2's columns possibly null because of the left-join.
   in  RT (Fragment subquery) (table1Cols ++ table2Cols)
-  where
-    generatedAlias : Alias
-    generatedAlias = generatedJoinAlias table1 table2
 
 mappingCastable : {cs : _} -> ColumnMapping IdrCast cs (ident, ty) => Castable ty
 mappingCastable {cs = ((ident, Evidence pt (MkColType Nullable pt)) :: xs)} @{(HereNul ident x @{sc})} = CastMaybe @{IdrCastString {pt}}
 mappingCastable {cs = ((ident, Evidence pt (MkColType NonNullable pt)) :: xs)} @{(Here ident ty @{sc})} = Cast @{IdrCastString {pt}}
 mappingCastable {cs = (x :: xs)} @{(There y)} = mappingCastable {cs=xs} @{y}
 
-mappingCastable' : {cs : _} -> LooseColumnMapping IdrCast cs (ident, ty) => Castable ty
-mappingCastable' {cs = ((ident, Evidence pt (MkColType Nullable pt)) :: xs)} @{(HereNul ident x @{sc})} = CastMaybe @{IdrCastString {pt}}
-mappingCastable' {cs = ((MkColumnId _ n, Evidence pt (MkColType Nullable pt)) :: xs)} @{(HereNulLoose n x @{sc})} = CastMaybe @{IdrCastString {pt}}
-mappingCastable' {cs = ((ident, Evidence pt (MkColType NonNullable pt)) :: xs)} @{(Here ident ty @{sc})} = Cast @{IdrCastString {pt}}
-mappingCastable' {cs = ((MkColumnId _ n, Evidence pt (MkColType NonNullable pt)) :: xs)} @{(HereLoose n ty @{sc})} = Cast @{IdrCastString {pt}}
-mappingCastable' {cs = (x :: xs)} @{(There y)} = mappingCastable' {cs=xs} @{y}
-
 export
-allCastable : PostgresTable t => {n : _} -> (table : t) -> {cols : Vect n _} -> HasSelectMappings IdrCast table cols => All Castable (Builtin.snd <$> cols)
-allCastable @{_} _ {cols = []} @{Left []} = []
-allCastable @{_} _ {cols = []} @{Right (_, [])} = []
-allCastable @{_} _ {cols = ((x, z) :: xs)} @{Left (y :: ys)} with (mappingCastable @{y})
-  allCastable @{_} _ {cols = ((x, z) :: xs)} @{Left (y :: ys)} | prf = prf :: allCastable @{_} _ {cols=xs} @{Left ys}
-allCastable @{_} _ {cols = ((x, z) :: xs)} @{Right (m, (y :: ys))} with (mappingCastable' @{y})
-  allCastable @{_} _ {cols = ((x, z) :: xs)} @{Right ((m :: ms), (y :: ys))} | prf = prf :: allCastable @{_} _ {cols=xs} @{Right (ms, ys)}
+allCastable : PostgresTable t => {n : _} -> (table : t) -> {cols : Vect n _} -> HasMappings IdrCast table cols => All Castable (Builtin.snd <$> cols)
+allCastable @{_} table {cols = []} @{[]} = []
+allCastable @{_} table {cols = ((x, y) :: xs)} @{(m :: ms)} = (mappingCastable @{m}) :: allCastable table {cols=xs}
 

@@ -212,13 +212,12 @@ tableQuery : PostgresTable t =>
              {n : _}
           -> (table : t)
           -> (cols : Vect n (ColumnIdentifier, Type))
-          -> HasSelectMappings IdrCast table cols =>
+          -> HasMappings IdrCast table cols =>
              (conn : Connection)
           -> IO (Either String (rowCount ** Vect rowCount (HVect (Builtin.snd <$> cols))))
 tableQuery table cols @{mappings} conn with (select table cols @{mappings})
   tableQuery table cols @{mappings} conn | query =
     expectedQuery (snd <$> cols) query conn @{allCastable table}
-
 
 namespace StringColumns
   ||| Query the given table in the database mapping each row to the given Idris type.
@@ -258,7 +257,7 @@ tableInsert : {n : _}
            -> (cols : Vect n ColumnIdentifier)
            -> {colTypes : Vect n Type}
            -> (values : HVect colTypes)
-           -> HasInsertMappings PGCast table cols colTypes =>
+           -> HasLooseMappings PGCast table (zip cols colTypes) =>
               (conn : Connection)
            -> IO ResultStatus
 tableInsert table cols values conn with (insert table cols values)
