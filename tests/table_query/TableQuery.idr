@@ -12,7 +12,7 @@ setupQuery2 : String
 setupQuery2 = "insert into public.table (i, d, b, t, c, j, ai, dm) values (1, 2.5, true, 'hello', 'c', '{\"hello\": \"world\"}', '{1,2,3}', null)"
 
 table1 : PersistedTable
-table1 = table "table" [
+table1 = pgTable "table" [
     ("i", NonNullable, PInteger)
   , ("d", NonNullable, PDouble)
   , ("b", NonNullable, PBoolean)

@@ -25,3 +25,9 @@ joinedTables = innerJoin table1 table2 (on "table1.id" "table2.f_id") `as` "hell
 query2 : Connection -> IO (Either String (rowCount ** Vect rowCount (HVect [Double, Maybe String])))
 query2 = tableQuery (joinedTables `as` "new") [("new.field1", Double), ("new.field2", Maybe String)]
 
+table3 : PersistedTable
+table3 = pgTable "table3" [] `as` "t3"
+--                            ^
+-- test that `as` has the right infix precedence
+-- to support this kind of inline usage.
+
