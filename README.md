@@ -195,12 +195,12 @@ You can support additional types for `expectedQuery` by creating new implementat
 
 Using `tableInsert` and `tableQuery` involes creating a representation of a table in Idris. Then you can safely insert or select subsets of the table's columns:
 ```idris
-||| A table named "first_table" in Postgres. This table may have been created with the following CREATE TABLE statment:
-||| ```sql
-||| CREATE TABLE first_table (id integer primary key, name text not null, age integer)
-||| ```
+||| A table named "first_table" in Postgres. This table may have been created with the following CREATE TABLE Postgres statment:
+||| 
+|||   CREATE TABLE first_table (id integer primary key, name text not null, age integer)
+||| 
 table1 : PersistedTable
-table1 = table "first_table" [
+table1 = pgTable "first_table" [
   ("id"  , NonNullable, PInteger)
 , ("name", NonNullable, PString)
 , ("age" , Nullable   , PInteger)
@@ -220,7 +220,7 @@ Notice that for `tableQuery` the table name must be given in addition to the col
 You can also select results out of table joins (currently only inner-joins and left-joins):
 ```idris
 table2 : PersistedTable
-table2 = table "second_table" [
+table2 = pgTable "second_table" [
   ("id"            , NonNullable, PInteger)
 , ("first_table_id", NonNullable, PInteger)
 , ("location"      , NonNullable, PString)
@@ -229,8 +229,8 @@ table2 = table "second_table" [
 execJoin : Database ? Open (const Open)
 execJoin = exec $
   DB.tableQuery (innerJoin table1 table2 ("id" == "first_table_id"))
-                [ ("table1.name"    , String)
-                , ("table2.location", String)
+                [ ("first_table.name"     , String)
+                , ("second_table.location", String)
                 ]
 ```
 
@@ -238,9 +238,9 @@ You can create table aliases within statements. An example left-join including t
 ```idris
 execJoin2 : Database ? Open (const Open)
 execJoin2 = exec $
-  DB.tableQuery (leftJoin (table1 `as` "t") (table2 `as` "o"))
+  DB.tableQuery (leftJoin (table1 `as` "t") (table2 `as` "o") ("id" == "first_table_id"))
                 [ ("t.name"    , String)
-                , ("o.location", String)
+                , ("o.location", Maybe String)
                 ]
 ```
 

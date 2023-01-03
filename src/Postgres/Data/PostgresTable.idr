@@ -38,7 +38,7 @@ data Alias = Named String
 %name Alias alias, alias1, alias2
 
 ||| Aliases can always be turned into identifiers.
-export
+public export
 aliasIdentifier : Alias -> Ident
 aliasIdentifier (Named str) = Id str
 aliasIdentifier (Generated k) = Id "_idr_t_\{show k}"
@@ -241,8 +241,8 @@ col nullable pt = Evidence pt (MkColType nullable pt)
 |||                          ]
 ||| ```
 public export
-table : (name : String) -> (columns : List (String, Nullability, PType)) -> PersistedTable
-table name columns = PT name (mapSnd (uncurry col) <$> columns)
+pgTable : (name : String) -> (columns : List (String, Nullability, PType)) -> PersistedTable
+pgTable name columns = PT name (mapSnd (uncurry col) <$> columns)
 
 ||| A mapping between a column name and Idris type to some element in a list of column identifiers
 ||| and Postgres types. This mapping proves that the column identifiers exists and that the Postgres
