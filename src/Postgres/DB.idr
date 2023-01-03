@@ -158,6 +158,9 @@ unsafeExec f = Exec (\(MkConnection conn empty) => f conn)
 pgExec : (Conn -> IO a) -> Connection -> IO a
 pgExec f = f . getConn 
 
+||| Perform some operation on an open database without closing it.
+||| A database connection will be created beforehand and then
+||| properly disposed of afterward.
 export
 withDB : HasIO io => (url : String) -> Database a Open (const Open) -> io $ Either String a
 withDB url dbOps = evalDatabase dbCommands

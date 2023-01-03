@@ -118,7 +118,7 @@ namespace CommandReference
                -> (query : String) 
                -> {auto castable : (All Castable expected)} 
                -> Connection 
-               -> IO (Either String (rows ** Vect rows (HVect expected)))
+               -> IO (Either String (rowCount ** Vect rowCount (HVect expected)))
 
   ||| Perform the given command and instead of parsing the response
   ||| just report the result status. This is useful when you don't
@@ -196,12 +196,14 @@ You can support additional types for `expectedQuery` by creating new implementat
 Using `tableInsert` and `tableQuery` involes creating a representation of a table in Idris. Then you can safely insert or select subsets of the table's columns:
 ```idris
 ||| A table named "first_table" in Postgres. This table may have been created with the following CREATE TABLE statment:
-|||  CREATE TABLE first_table (id integer primary key, name text not null, age integer)
+||| ```sql
+||| CREATE TABLE first_table (id integer primary key, name text not null, age integer)
+||| ```
 table1 : PersistedTable
-table1 = PT "first_table" [
-  ("id",   col NonNullable PInteger)
-, ("name", col NonNullable PString)
-, ("age",  col Nullable    PInteger)
+table1 = table "first_table" [
+  ("id"  , NonNullable, PInteger)
+, ("name", NonNullable, PString)
+, ("age" , Nullable   , PInteger)
 ]
 
 execInsert : Database ? Open (const Open)
@@ -210,23 +212,35 @@ execInsert = exec $
 
 execSelect : Database ? Open (const Open)
 execSelect = exec $
-  DB.tableQuery table1 [("name", String), ("age", Maybe Integer)]
+  DB.tableQuery table1 [("first_table.name", String), ("first_table.age", Maybe Integer)]
 ```
+
+Notice that for `tableQuery` the table name must be given in addition to the column name. The ability to specify the table name will come in handing when writing queries against statements with subqueries or joins, but here it feels unnecessary. There is a `tableQuery'` function that accepts just the column names for simple queries against single tables where no column name conflict is possible.
 
 You can also select results out of table joins (currently only inner-joins and left-joins):
 ```idris
 table2 : PersistedTable
-table2 = PT "second_table" [
-  ("id",             col NonNullable PInteger)
-, ("first_table_id", col NonNullable PInteger)
-, ("location",       col NonNullable PString)
+table2 = table "second_table" [
+  ("id"            , NonNullable, PInteger)
+, ("first_table_id", NonNullable, PInteger)
+, ("location"      , NonNullable, PString)
 ]
 
 execJoin : Database ? Open (const Open)
 execJoin = exec $
-  DB.tableQuery (innerJoin table1 table2 (On "table1.id" "table2.first_table_id"))
-                [ ("table1.name",     String)
+  DB.tableQuery (innerJoin table1 table2 ("id" == "first_table_id"))
+                [ ("table1.name"    , String)
                 , ("table2.location", String)
+                ]
+```
+
+You can create table aliases within statements. An example left-join including the use of an alias but otherwise similar to the above example would be:
+```idris
+execJoin2 : Database ? Open (const Open)
+execJoin2 = exec $
+  DB.tableQuery (leftJoin (table1 `as` "t") (table2 `as` "o"))
+                [ ("t.name"    , String)
+                , ("o.location", String)
                 ]
 ```
 
