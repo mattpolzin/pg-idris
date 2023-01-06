@@ -1,0 +1,11 @@
+1/1: Building AliasQuery (AliasQuery.idr)
+Main> COMMAND_OK
+COMMAND_OK
+COMMAND_OK
+COMMAND_OK
+COMMAND_OK
+COMMAND_OK
+COMMAND_OK
+[1, 2.5, True, "hello", 'c', {"hello":"world"}, [1, 2, 3], Nothing, Just "hello", Just "world"]
+[2, 3.0, False, "goodbye", 'z', {"hi":"again"}, [4, 5, 6], Just 2.22, Nothing, Nothing]
+Main> Bye for now!

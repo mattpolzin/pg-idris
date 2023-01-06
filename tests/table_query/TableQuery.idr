@@ -11,16 +11,16 @@ setupQuery1 = "create table public.table (i integer not null, d float8 not null,
 setupQuery2 : String
 setupQuery2 = "insert into public.table (i, d, b, t, c, j, ai, dm) values (1, 2.5, true, 'hello', 'c', '{\"hello\": \"world\"}', '{1,2,3}', null)"
 
-table : RuntimeTable
-table = RT (named "table") [
-    ("i", col NonNullable PInteger)
-  , ("d", col NonNullable PDouble)
-  , ("b", col NonNullable PBoolean)
-  , ("t", col NonNullable PString)
-  , ("c", col NonNullable PChar)
-  , ("j", col NonNullable PJson)
-  , ("ai", col NonNullable (PArray PInteger))
-  , ("dm", col Nullable PDouble)
+table1 : PersistedTable
+table1 = pgTable "table" [
+    ("i", NonNullable, PInteger)
+  , ("d", NonNullable, PDouble)
+  , ("b", NonNullable, PBoolean)
+  , ("t", NonNullable, PString)
+  , ("c", NonNullable, PChar)
+  , ("j", NonNullable, PJson)
+  , ("ai", NonNullable, (PArray PInteger))
+  , ("dm", Nullable, PDouble)
   ]
 
 testQuery : Vect ? (String, Type)
@@ -44,6 +44,6 @@ main =
     liftIO' . putStrLn $ show res1
     res2 <- exec $ perform setupQuery2
     liftIO' . putStrLn $ show res2
-    Right (rows ** res3) <- exec $ tableQuery table testQuery
+    Right (rows ** res3) <- exec $ tableQuery' table1 testQuery
       | Left err => liftIO' $ putStrLn err
     liftIO' . for_ res3 $ putStrLn . show

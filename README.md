@@ -135,7 +135,7 @@ namespace CommandReference
   tableQuery : PostgresTable t =>
                {n : _}
             -> (table : t)
-            -> (cols : Vect n (String, Type))
+            -> (cols : Vect n (ColumnIdentifier, Type))
             -> HasMappings IdrCast table cols =>
                (conn : Connection)
             -> IO (Either String (rowCount ** Vect rowCount (HVect (Builtin.snd <$> cols))))
@@ -154,7 +154,7 @@ namespace CommandReference
              -> (cols : Vect n String)
              -> {colTypes : Vect n Type}
              -> (values : HVect colTypes)
-             -> HasMappings PGCast table (zip cols colTypes) =>
+             -> HasMappings PGCast table (zip (MkColumnId (aliasOrName table) <$> cols) colTypes) =>
                 (conn : Connection)
              -> IO ResultStatus
 
@@ -195,13 +195,15 @@ You can support additional types for `expectedQuery` by creating new implementat
 
 Using `tableInsert` and `tableQuery` involes creating a representation of a table in Idris. Then you can safely insert or select subsets of the table's columns:
 ```idris
-||| A table named "first_table" in Postgres. This table may have been created with the following CREATE TABLE statment:
-|||  CREATE TABLE first_table (id integer primary key, name text not null, age integer)
+||| A table named "first_table" in Postgres. This table may have been created with the following CREATE TABLE Postgres statment:
+||| 
+|||   CREATE TABLE first_table (id integer primary key, name text not null, age integer)
+||| 
 table1 : PersistedTable
-table1 = PT "first_table" [
-  ("id",   col NonNullable PInteger)
-, ("name", col NonNullable PString)
-, ("age",  col Nullable    PInteger)
+table1 = pgTable "first_table" [
+  ("id"  , NonNullable, PInteger)
+, ("name", NonNullable, PString)
+, ("age" , Nullable   , PInteger)
 ]
 
 execInsert : Database ? Open (const Open)
@@ -210,23 +212,35 @@ execInsert = exec $
 
 execSelect : Database ? Open (const Open)
 execSelect = exec $
-  DB.tableQuery table1 [("name", String), ("age", Maybe Integer)]
+  DB.tableQuery table1 [("first_table.name", String), ("first_table.age", Maybe Integer)]
 ```
+
+Notice that for `tableQuery` the table name must be given in addition to the column name. The ability to specify the table name will come in handing when writing queries against statements with subqueries or joins, but here it feels unnecessary. There is a `tableQuery'` function that accepts just the column names for simple queries against single tables where no column name conflict is possible.
 
 You can also select results out of table joins (currently only inner-joins and left-joins):
 ```idris
 table2 : PersistedTable
-table2 = PT "second_table" [
-  ("id",             col NonNullable PInteger)
-, ("first_table_id", col NonNullable PInteger)
-, ("location",       col NonNullable PString)
+table2 = pgTable "second_table" [
+  ("id"            , NonNullable, PInteger)
+, ("first_table_id", NonNullable, PInteger)
+, ("location"      , NonNullable, PString)
 ]
 
 execJoin : Database ? Open (const Open)
 execJoin = exec $
-  DB.tableQuery (innerJoin table1 table2 (On "id" "first_table_id"))
-                [ ("name",     String)
-                , ("location", String)
+  DB.tableQuery (innerJoin table1 table2 ("id" == "first_table_id"))
+                [ ("first_table.name"     , String)
+                , ("second_table.location", String)
+                ]
+```
+
+You can create table aliases within statements. An example left-join including the use of an alias but otherwise similar to the above example would be:
+```idris
+execJoin2 : Database ? Open (const Open)
+execJoin2 = exec $
+  DB.tableQuery (leftJoin (table1 `as` "t") (table2 `as` "o") ("id" == "first_table_id"))
+                [ ("t.name"    , String)
+                , ("o.location", Maybe String)
                 ]
 ```
 

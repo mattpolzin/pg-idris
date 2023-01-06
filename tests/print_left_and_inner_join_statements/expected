@@ -1,0 +1,4 @@
+1/1: Building LeftAndInnerJoinStatements (LeftAndInnerJoinStatements.idr)
+Main> inner-join followed by left-join select statement: 
+SELECT "table1"."field1","table2"."field2","table3"."field3" FROM "table1" JOIN "table2" ON "table1"."id" = "table2"."f_id" LEFT JOIN "table3" ON "table1"."id" = "table3"."f_id"
+Main> Bye for now!

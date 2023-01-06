@@ -1,4 +1,0 @@
-1/1: Building DoubleJoinStatement (DoubleJoinStatement.idr)
-Main> double-join select statement: 
-SELECT "field1","field2","field3" FROM (SELECT * FROM (SELECT * FROM "table1" JOIN "table3" ON "table1"."id" = "table3"."f_id") AS _idr_t_1 JOIN "table2" ON _idr_t_1."id" = "table2"."f_id") AS _idr_t_2
-Main> Bye for now!

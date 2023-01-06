@@ -44,16 +44,16 @@ table2 = PT "table2" [
 
 testQuery : Vect ? (ColumnIdentifier, Type)
 testQuery = [
-    ("table1.i", Integer)
-  , ("table1.d", Double)
-  , ("table1.b", Bool)
-  , ("table1.t", String)
-  , ("table1.c", Char)
-  , ("table1.j", JSON)
-  , ("table1.ai", (List Integer))
-  , ("table1.dm", Maybe Double)
-  , ("table2.extra1", Maybe String)
-  , ("table2.extra2", Maybe String)
+    ("out.i", Integer)
+  , ("out.d", Double)
+  , ("out.b", Bool)
+  , ("out.t", String)
+  , ("out.c", Char)
+  , ("out.j", JSON)
+  , ("out.ai", (List Integer))
+  , ("out.dm", Maybe Double)
+  , ("out.extra1", Maybe String)
+  , ("out.extra2", Maybe String)
   ]
 
 main : IO ()
@@ -73,7 +73,7 @@ main =
     liftIO' . putStrLn $ show res21
     res22 <- exec $ perform setupQuery22
     liftIO' . putStrLn $ show res22
-    Right (rows ** res3) <- exec $ tableQuery (leftJoin table1 table2 (on "table1.i" "table2.f_i")) testQuery
+    Right (rows ** res3) <- exec $ tableQuery (leftJoin (table1 `as` "t") (table2 `as` "o") (on "t.i" "o.f_i") `as` "out") testQuery
       | Left err => liftIO' $ putStrLn err
     liftIO' . for_ res3 $ putStrLn . show
 

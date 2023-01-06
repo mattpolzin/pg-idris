@@ -28,7 +28,13 @@ main =
     liftIO' . putStrLn $ show res1
     res2 <- exec $ perform setupQuery2
     liftIO' . putStrLn $ show res2
-    COMMAND_OK <- exec $ tableInsert table1 ["i", "d", "b", "t", "c", "j", "ai", "dm", "astr"] [1, 2.5, True, "hello", 'c', JString "world", the (List Nat) [1,2,3], the (Maybe Double) Nothing, the (List String) ["hi", "how", "are", "you"]]
+    -- first explicitly referring to table being inserted into (e.g. "table.i" for column "i"):
+    COMMAND_OK <- exec $ tableInsert table1 ["table.i", "table.d", "table.b", "table.t", "table.c", "table.j", "table.ai", "table.dm", "table.astr"]
+                                            [1, 2.5, True, "hello", 'c', JString "world", the (List Nat) [1,2,3], the (Maybe Double) Nothing, the (List String) ["hi", "how", "are", "you"]]
+      | err => liftIO' $ printLn err
+    -- then referring only to the column being inserted into (e.g. "i" for column "i"):
+    COMMAND_OK <- exec $ tableInsert table1 ["i", "d", "b", "t", "c", "j", "ai", "dm", "astr"]
+                                            [2, 2.5, True, "hello", 'c', JString "world", the (List Nat) [1,2,3], the (Maybe Double) Nothing, the (List String) ["hi", "how", "are", "you"]]
       | err => liftIO' $ printLn err
     liftIO' $ putStrLn "DONE"
 

@@ -7,14 +7,16 @@ import Postgres
 
 compileTimeTests : TestPool
 compileTimeTests = MkTestPool "compile-time tests" [] Nothing [
-  "join_statement"
+  "inner_join_statement"
 , "left_join_statement"
+, "alias_statement"
 ]
 
 unitTests : TestPool
 unitTests = MkTestPool "unit tests" [] Nothing [
-  "double_join_statement"
-, "left_and_inner_join_statements"
+  "print_double_join_statement"
+, "print_left_and_inner_join_statements"
+, "print_alias_statement"
 ]
 
 integrationTests : TestPool
@@ -25,6 +27,7 @@ integrationTests = MkTestPool "integration tests with postgres" [] Nothing [
 , "inner_join_query"
 , "left_join_query"
 , "insert_query"
+, "alias_query"
 ]
 
 exitError : String -> IO ()
