@@ -15,6 +15,7 @@ modules = Postgres
         , Postgres.Data
         , Postgres.Data.Conn
         , Postgres.Data.ConnectionStatus
+        , Postgres.Data.HVectTmp
         , Postgres.Data.PostgresTable
         , Postgres.Data.PostgresType
         , Postgres.Data.PostgresValue

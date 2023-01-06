@@ -2,5 +2,5 @@
 Main> COMMAND_OK
 COMMAND_OK
 COMMAND_OK
-[1,2.5,True,"hello",'c',{"hello":"world"},[1, 2, 3],Nothing]
+[1, 2.5, True, "hello", 'c', {"hello":"world"}, [1, 2, 3], Nothing]
 Main> Bye for now!
