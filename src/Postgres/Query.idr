@@ -3,7 +3,7 @@ module Postgres.Query
 import public Language.JSON
 import public Data.Vect.Quantifiers
 import public Postgres.Data.PostgresValue
-import public Data.HVect
+import public Postgres.Data.HVectTmp
 
 import Postgres.FFI.Utility
 import Postgres.Data.Conn
