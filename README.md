@@ -118,7 +118,7 @@ namespace CommandReference
                -> (query : String) 
                -> {auto castable : (All Castable expected)} 
                -> Connection 
-               -> IO (Either String (rows ** Vect rows (HVect expected)))
+               -> IO (Either String (rowCount ** Vect rowCount (HVect expected)))
 
   ||| Perform the given command and instead of parsing the response
   ||| just report the result status. This is useful when you don't

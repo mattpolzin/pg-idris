@@ -5,7 +5,6 @@ import Postgres.Data.PostgresTable
 import Data.String
 import Data.String.Extra
 import Data.List
-import Data.HVect
 
 error : Show a => {default "" ctx: String} -> a -> String
 error {ctx} diag = let ctxStr = if (strLength ctx) == 0
