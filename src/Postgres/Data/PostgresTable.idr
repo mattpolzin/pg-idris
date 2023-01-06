@@ -3,11 +3,11 @@ module Postgres.Data.PostgresTable
 import Postgres.Data.PostgresType
 import public Data.DPair
 
+import Postgres.Data.HVectTmp
 import Postgres.Data.PostgresValue
 import Data.List
 import public Data.List1
 import public Data.List.Elem
-import Data.HVect
 import Data.Vect
 import Data.Vect.Elem
 import public Data.Vect.Quantifiers
