@@ -217,7 +217,7 @@ execSelect = exec $
 
 Notice that for `tableQuery` the table name must be given in addition to the column name. The ability to specify the table name will come in handing when writing queries against statements with subqueries or joins, but here it feels unnecessary. There is a `tableQuery'` function that accepts just the column names for simple queries against single tables where no column name conflict is possible.
 
-You can also select results out of table joins (currently only inner-joins and left-joins):
+You can also select results out of table joins (currently only inner-, right-, and left-joins):
 ```idris
 table2 : PersistedTable
 table2 = pgTable "second_table" [
