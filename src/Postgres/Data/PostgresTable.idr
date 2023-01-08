@@ -330,22 +330,12 @@ elemForOnMapping table c (Right (_, m)) = (replaceSource (aliasOrName table) c *
 ||| a shared column. In pseudo-code: "table1 join table2 'on' col1 = col2".
 |||
 ||| ```idris example
-||| innerJoin table1 table2 (on "col_from_table1" "col_from_table2")
+||| innerJoin' table1 table2 ("col_from_table1" == "col_from_table2")
 ||| ```
-|||
-||| There is an alternative syntax supported using `==`:
-|||
-||| ```idris example
-||| innerJoin table1 table2 ("col_from_table1" == "col_from_table2")
-||| ```
-public export
-on : PostgresTable t => PostgresTable u => {t1 : t} -> {t2 : u} -> (c1 : ColumnIdentifier) -> (c2 : ColumnIdentifier) -> {auto on1 : HasOnMapping c1 t1} -> {auto on2 : HasOnMapping c2 t2} -> Join t1 t2
-on c1 c2 {on1} {on2} with (elemForOnMapping t1 c1 on1, elemForOnMapping t2 c2 on2)
-  on c1 c2 {on1} {on2} | ((c1' ** on1'), (c2' ** on2')) = On c1' c2'
-
 public export
 (==) : PostgresTable t => PostgresTable u => {t1 : t} -> {t2 : u} -> (c1 : ColumnIdentifier) -> (c2 : ColumnIdentifier) -> {auto on1 : HasOnMapping c1 t1} -> {auto on2 : HasOnMapping c2 t2} -> Join t1 t2
-(==) = on
+(==) c1 c2 {on1} {on2} with (elemForOnMapping t1 c1 on1, elemForOnMapping t2 c2 on2)
+  (==) c1 c2 {on1} {on2} | ((c1' ** on1'), (c2' ** on2')) = On c1' c2'
 
 namespace Join
   public export
@@ -356,20 +346,14 @@ namespace Join
   column2 : Join t u -> ColumnIdentifier
   column2 (On c1 c2) = c2
 
-||| Construct a runtime table by joining two other tables on a specified column.
+||| Construct a runtime table by inner-joining two other tables on a specified column.
 |||
 ||| ```idris example
-||| innerJoin table1 table2 (on "col_from_table1" "col_from_table2")
-||| ```
-|||
-||| There is an alternative syntax supported using `==`:
-|||
-||| ```idris example
-||| innerJoin table1 table2 ("col_from_table1" == "col_from_table2")
+||| innerJoin' table1 table2 ("col_from_table1" == "col_from_table2")
 ||| ```
 public export
-innerJoin : PostgresTable t => PostgresTable u => (table1 : t) -> (table2 : u) -> (on : Join table1 table2) -> RuntimeTable
-innerJoin table1 table2 joinOn = 
+innerJoin' : PostgresTable t => (table1 : t) -> PostgresTable u => (table2 : u) -> (on : Join table1 table2) -> RuntimeTable
+innerJoin' table1 table2 joinOn = 
   let table1Statement = show $ tableStatement table1
       table2Statement = show $ tableStatement table2
       table1JoinName = show $ column1 joinOn
@@ -379,20 +363,14 @@ innerJoin table1 table2 joinOn =
       table2Cols = columns table2
   in  RT (Fragment subquery) (table1Cols ++ table2Cols)
 
-||| Construct a runtime table by inner-joining two other tables on a specified column.
+||| Construct a runtime table by left-joining two other tables on a specified column.
 |||
 ||| ```idris example
-||| leftJoin table1 table2 (on "col_from_table1" "col_from_table2")
-||| ```
-|||
-||| There is an alternative syntax supported using `==`:
-|||
-||| ```idris example
-||| leftJoin table1 table2 ("col_from_table1" == "col_from_table2")
+||| leftJoin' table1 table2 ("col_from_table1" == "col_from_table2")
 ||| ```
 public export 
-leftJoin : PostgresTable t => PostgresTable u => (table1 : t) -> (table2 : u) -> (on : Join table1 table2) -> RuntimeTable
-leftJoin table1 table2 joinOn =
+leftJoin' : PostgresTable t => (table1 : t) -> PostgresTable u => (table2 : u) -> (on : Join table1 table2) -> RuntimeTable
+leftJoin' table1 table2 joinOn =
   let table1Statement = show $ tableStatement table1
       table2Statement = show $ tableStatement table2
       table1JoinName = show $ column1 joinOn
@@ -402,6 +380,66 @@ leftJoin table1 table2 joinOn =
       table2Cols = mapSnd (bimap (\t => t) makeNullable) <$> columns table2
       -- ^ need to make table2's columns possibly null because of the left-join.
   in  RT (Fragment subquery) (table1Cols ++ table2Cols)
+
+||| Construct a runtime table by right-joining two other tables on a specified column.
+|||
+||| ```idris example
+||| rightJoin' table1 table2 ("col_from_table1" == "col_from_table2")
+||| ```
+public export 
+rightJoin' : PostgresTable t => (table1 : t) -> PostgresTable u => (table2 : u) -> (on : Join table1 table2) -> RuntimeTable
+rightJoin' table1 table2 joinOn =
+  let table1Statement = show $ tableStatement table1
+      table2Statement = show $ tableStatement table2
+      table1JoinName = show $ column1 joinOn
+      table2JoinName = show $ column2 joinOn
+      subquery = "\{table1Statement} LEFT JOIN \{table2Statement} ON \{table1JoinName} = \{table2JoinName}"
+      table1Cols = mapSnd (bimap (\t => t) makeNullable) <$> columns table1
+      -- ^ need to make table1's columns possibly null because of the right-join.
+      table2Cols = columns table2
+  in  RT (Fragment subquery) (table1Cols ++ table2Cols)
+
+public export
+data JoinType = Inner | Left | Right
+
+public export
+data TablePair : table1 -> table2 -> Type where
+  MkTP : JoinType -> PostgresTable t => PostgresTable u => (table1 : t) -> (table2 : u) -> TablePair table1 table2
+
+||| Inner-join two tables.
+||| This produces a pair of tables and a join strategy. You then need to use `onColumns` to take the table pair
+||| and add the columns that the join should occur over.
+public export
+innerJoin : PostgresTable t => PostgresTable u => (table1 : t) -> (table2 : u) -> TablePair table1 table2
+innerJoin = MkTP Inner
+
+||| Left-join two tables.
+||| This produces a pair of tables and a join strategy. You then need to use `onColumns` to take the table pair
+||| and add the columns that the join should occur over.
+public export
+leftJoin : PostgresTable t => PostgresTable u => (table1 : t) -> (table2 : u) -> TablePair table1 table2
+leftJoin = MkTP Left
+
+||| Right-join two tables.
+||| This produces a pair of tables and a join strategy. You then need to use `onColumns` to take the table pair
+||| and add the columns that the join should occur over.
+public export
+rightJoin : PostgresTable t => PostgresTable u => (table1 : t) -> (table2 : u) -> TablePair table1 table2
+rightJoin = MkTP Right
+
+||| Given that you've already paired two tables up (see `innerJoin`, `leftJoin`, `rightJoin`)
+||| you use `onColumns` to specify which columns from each table in the pair should be equal
+||| in the joined table. The end result is a new table.
+|||
+||| Psuedo-example:
+|||   table1 `innerJoin` table2 `onColumns` ("table1.col1" == "table2.col2")
+public export
+onColumns : TablePair table1 table2 -> Join table1 table2 -> RuntimeTable
+onColumns (MkTP Inner table1 table2) joinOn = innerJoin' table1 table2 joinOn
+onColumns (MkTP Left table1 table2) joinOn = leftJoin' table1 table2 joinOn
+onColumns (MkTP Right table1 table2) joinOn = rightJoin' table1 table2 joinOn
+
+infixl 10 `innerJoin`, `leftJoin`, `rightJoin`, `onColumns`
 
 mappingCastable : {cs : _} -> ColumnMapping IdrCast cs (ident, ty) => Castable ty
 mappingCastable {cs = ((ident, Evidence pt (MkColType Nullable pt)) :: xs)} @{(HereNul ident x @{sc})} = CastMaybe @{IdrCastString {pt}}

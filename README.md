@@ -217,7 +217,7 @@ execSelect = exec $
 
 Notice that for `tableQuery` the table name must be given in addition to the column name. The ability to specify the table name will come in handy when writing queries against statements with subqueries or joins, but here it feels unnecessary. There is a `tableQuery'` function that accepts just the column names for simple queries against single tables where no column name conflict is possible.
 
-You can also select results out of table joins (currently only inner-joins and left-joins):
+You can also select results out of table joins (currently only inner-, right-, and left-joins):
 ```idris
 table2 : PersistedTable
 table2 = pgTable "second_table" [
@@ -226,9 +226,18 @@ table2 = pgTable "second_table" [
 , ("location"      , NonNullable, PString)
 ]
 
+-- infix notation:
 execJoin : Database ? Open (const Open)
 execJoin = exec $
-  DB.tableQuery (innerJoin table1 table2 ("id" == "first_table_id"))
+  DB.tableQuery (table1 `innerJoin` table2 `onColumns` ("id" == "first_table_id"))
+                [ ("first_table.name"     , String)
+                , ("second_table.location", String)
+                ]
+
+-- prefix notation:
+execJoin' : Database ? Open (const Open)
+execJoin' = exec $
+  DB.tableQuery (innerJoin' table1 table2 ("id" == "first_table_id"))
                 [ ("first_table.name"     , String)
                 , ("second_table.location", String)
                 ]
@@ -238,9 +247,20 @@ You can create table aliases within statements. An example left-join including t
 ```idris
 execJoin2 : Database ? Open (const Open)
 execJoin2 = exec $
-  DB.tableQuery (leftJoin (table1 `as` "t") (table2 `as` "o") ("id" == "first_table_id"))
+  DB.tableQuery ((table1 `as` "t") `leftJoin` (table2 `as` "o") `onColumns` ("id" == "first_table_id"))
                 [ ("t.name"    , String)
                 , ("o.location", Maybe String)
                 ]
 ```
 
+Although you have to get certain details right (namely, put parens around the column equality, use table names anywhere past the first column equality), the infix notation is fairly legible even for multiple joins:
+```idris
+execJoin3 : Database ? Open (const Open)
+execJoin3 = exec $
+  DB.tableQuery (table1 `innerJoin` table2 `onColumns` ("id" == "first_table_id")
+                        `leftJoin`  (table2 `as` "third_table") `onColumns` ("first_table.id" == "third_table.first_table_id"))
+                [ ("first_table.name"     , String)
+                , ("second_table.location", String)
+                , ("third_table.location" , Maybe String)
+                ]
+```

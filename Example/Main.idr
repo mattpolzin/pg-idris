@@ -62,7 +62,7 @@ functionsTable = PT "pg_proc" [ ("proname", col NonNullable PString)
 
 showFunctions : Connection -> IO ()
 showFunctions conn = do
-  Right (_ ** rows) <- tableQuery functionsTable [("proname", String), ("proargnames", Maybe (List String))] conn
+  Right (_ ** rows) <- tableQuery' functionsTable [("proname", String), ("proargnames", Maybe (List String))] conn
     | Left err => putStrLn err
   for_ rows $ \(name :: args :: []) => do
     putStrLn $ name ++ "(" ++ (join ", " (maybe [] id args)) ++ ")"

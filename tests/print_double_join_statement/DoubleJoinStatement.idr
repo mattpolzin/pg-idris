@@ -21,10 +21,18 @@ table3 = PT "table3" [
   ]
 
 doubleJoin : RuntimeTable
-doubleJoin = (innerJoin
-               (innerJoin table1 table3 (on "id" "f_id"))
-               table2 (on "table1.id" "f_id")
+doubleJoin = (innerJoin'
+               (innerJoin' table1 table3 ("id" == "f_id"))
+               table2 ("table1.id" == "f_id")
              )
+
+-- now with infix functions
+doubleJoin' : RuntimeTable
+doubleJoin' = table1 `innerJoin` table3 `onColumns` ("id" == "f_id")
+                     `innerJoin` table2 `onColumns` ("table1.id" == "f_id")
+
+assertEqualResults : Main.doubleJoin = Main.doubleJoin'
+assertEqualResults = Refl
 
 -- we'll test the query compiles and then dump the select string value in the main function to compare golden values
 query1 : Connection -> IO (Either String (rowCount ** Vect rowCount (HVect [Double, Maybe String, String])))
