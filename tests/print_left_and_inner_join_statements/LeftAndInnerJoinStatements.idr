@@ -21,10 +21,17 @@ table3 = PT "table3" [
   ]
 
 doubleJoin : RuntimeTable
-doubleJoin = (leftJoin
-               (innerJoin table1 table2 (on "table1.id" "table2.f_id"))
-               table3 (on "table1.id" "table3.f_id")
+doubleJoin = (leftJoin'
+               (innerJoin' table1 table2 ("table1.id" == "table2.f_id"))
+               table3 ("table1.id" == "table3.f_id")
              )
+
+doubleJoin' : RuntimeTable
+doubleJoin' = table1 `innerJoin` table2 `onColumns` ("table1.id" == "table2.f_id")
+                     `leftJoin`  table3 `onColumns` ("table1.id" == "table3.f_id")
+
+assertEqualResults : Main.doubleJoin = Main.doubleJoin'
+assertEqualResults = Refl
 
 query1 : Connection -> IO (Either String (rowCount ** Vect rowCount (HVect [Double, Maybe String, Maybe String])))
 query1 = tableQuery

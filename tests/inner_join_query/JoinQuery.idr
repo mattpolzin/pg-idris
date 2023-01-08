@@ -69,7 +69,7 @@ main =
     liftIO' . putStrLn $ show res20
     res21 <- exec $ perform setupQuery21
     liftIO' . putStrLn $ show res21
-    Right (rows ** res3) <- exec $ tableQuery (innerJoin table1 table2 (on "i" "f_i")) testQuery
+    Right (rows ** res3) <- exec $ tableQuery (innerJoin' table1 table2 ("i" == "f_i")) testQuery
       | Left err => liftIO' $ putStrLn err
     liftIO' . for_ res3 $ putStrLn . show
 

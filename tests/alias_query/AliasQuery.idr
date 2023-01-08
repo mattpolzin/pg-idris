@@ -73,7 +73,7 @@ main =
     liftIO' . putStrLn $ show res21
     res22 <- exec $ perform setupQuery22
     liftIO' . putStrLn $ show res22
-    Right (rows ** res3) <- exec $ tableQuery (leftJoin (table1 `as` "t") (table2 `as` "o") (on "t.i" "o.f_i") `as` "out") testQuery
+    Right (rows ** res3) <- exec $ tableQuery (leftJoin' (table1 `as` "t") (table2 `as` "o") ("t.i" == "o.f_i") `as` "out") testQuery
       | Left err => liftIO' $ putStrLn err
     liftIO' . for_ res3 $ putStrLn . show
 

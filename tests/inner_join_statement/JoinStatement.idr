@@ -16,45 +16,39 @@ table2 = PT "table2" [
 
 query1 : Connection -> IO (Either String (rowCount ** Vect rowCount (HVect [Double, Maybe String])))
 query1 = tableQuery
-           (innerJoin table1 table2 (On "table1.id" "table2.f_id"))
+           (innerJoin' table1 table2 (On "table1.id" "table2.f_id"))
            [("table1.field1", Double), ("table2.field2", Maybe String)]
 
 -- now with (==) `on` function:
 query2 : Connection -> IO (Either String (rowCount ** Vect rowCount (HVect [Double, Maybe String])))
 query2 = tableQuery
-           (innerJoin table1 table2 ("table1.id" == "table2.f_id"))
+           (innerJoin' table1 table2 ("table1.id" == "table2.f_id"))
            [("table1.field1", Double), ("table2.field2", Maybe String)]
 
 -- now with (==) `on` and no table references function:
 query2' : Connection -> IO (Either String (rowCount ** Vect rowCount (HVect [Double, Maybe String])))
 query2' = tableQuery
-            (innerJoin table1 table2 ("id" == "f_id"))
+            (innerJoin' table1 table2 ("id" == "f_id"))
             [("table1.field1", Double), ("table2.field2", Maybe String)]
 
--- now with lower-case `on` function:
+-- now with infix `innerJoin` and `on`:
 query2'' : Connection -> IO (Either String (rowCount ** Vect rowCount (HVect [Double, Maybe String])))
 query2'' = tableQuery
-             (innerJoin table1 table2 (on "table1.id" "table2.f_id"))
+             (table1 `innerJoin` table2 `onColumns` ("table1.id" == "table2.f_id"))
              [("table1.field1", Double), ("table2.field2", Maybe String)]
-
--- and finally without referencing the tables explicitly with lower-case `on` function:
-query2''' : Connection -> IO (Either String (rowCount ** Vect rowCount (HVect [Double, Maybe String])))
-query2''' = tableQuery
-              (innerJoin table1 table2 (on "id" "f_id"))
-              [("table1.field1", Double), ("table2.field2", Maybe String)]
 
 failing
   query3 : Connection -> IO (Either String (rowCount ** Vect rowCount ?))
   query3 = tableQuery
-             (innerJoin table1 table2 (on "table1.id" "table2.problem"))
-             --                                   ^
+             (innerJoin' table1 table2 ("table1.id" == "table2.problem"))
+             --                                                 ^
              -- Can't find "problem" in column names for table2
              [("table1.field1", Double), ("table2.field2", Maybe String)]
 
 failing
   query4 : Connection -> IO (Either String (rowCount ** Vect rowCount ?))
   query4 = tableQuery
-             (innerJoin table1 table2 (on "table1.id" "table2.f_id"))
+             (innerJoin' table1 table2 ("table1.id" == "table2.f_id"))
              [("table1.field1", Double), ("table2.problem", Maybe String)]
              --                       ^
              -- Can't find "problem" in (innerJoin table1 table2 (on "id" "f_id"))
@@ -62,7 +56,7 @@ failing
 failing
   query5 : Connection -> IO (Either String (rowCount ** Vect rowCount ?))
   query5 = tableQuery
-             (innerJoin table1 table2 (on "table1.id" "table2.f_id"))
+             (innerJoin' table1 table2 ("table1.id" == "table2.f_id"))
              [("table1.field1", Double), ("table2.field2", String)]
              --                               ^
              -- Can't cast nullable Postgres string to Idris String (should be Maybe String)
@@ -72,6 +66,6 @@ IdrCast PDouble Integer where
 
 query6 : Connection -> IO (Either String (rowCount ** Vect rowCount (HVect [Integer, Maybe String])))
 query6 = tableQuery
-           (innerJoin table1 table2 (on "table1.id" "table2.f_id"))
+           (innerJoin' table1 table2 ("table1.id" == "table2.f_id"))
            [("table1.field1", Integer), ("table2.field2", Maybe String)]
 

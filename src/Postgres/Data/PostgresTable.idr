@@ -389,17 +389,22 @@ public export
 data TablePair : table1 -> table2 -> Type where
   MkTP : JoinType -> PostgresTable t => PostgresTable u => (table1 : t) -> (table2 : u) -> TablePair table1 table2
 
-infixl 10 `innerJoin`, `on`
-
 ||| Inner-join two tables.
 public export
 innerJoin : PostgresTable t => PostgresTable u => (table1 : t) -> (table2 : u) -> TablePair table1 table2
 innerJoin = MkTP Inner
 
+||| Inner-join two tables.
 public export
-on : TablePair table1 table2 -> Join table1 table2 -> RuntimeTable
-on (MkTP Inner table1 table2) joinOn = innerJoin' table1 table2 joinOn
-on (MkTP Left table1 table2) joinOn = leftJoin' table1 table2 joinOn
+leftJoin : PostgresTable t => PostgresTable u => (table1 : t) -> (table2 : u) -> TablePair table1 table2
+leftJoin = MkTP Left
+
+public export
+onColumns : TablePair table1 table2 -> Join table1 table2 -> RuntimeTable
+onColumns (MkTP Inner table1 table2) joinOn = innerJoin' table1 table2 joinOn
+onColumns (MkTP Left table1 table2) joinOn = leftJoin' table1 table2 joinOn
+
+infixl 10 `innerJoin`, `leftJoin`, `onColumns`
 
 mappingCastable : {cs : _} -> ColumnMapping IdrCast cs (ident, ty) => Castable ty
 mappingCastable {cs = ((ident, Evidence pt (MkColType Nullable pt)) :: xs)} @{(HereNul ident x @{sc})} = CastMaybe @{IdrCastString {pt}}
