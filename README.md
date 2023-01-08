@@ -39,7 +39,7 @@ The `indexed` Idris package is needed at version `0.0.9` or greater. It is clone
 You can take a look at the `Main.idr` and `example.ipkg` in the Example folder for an example of using the library. 
 
 ### Install the library
-Run `make install` to build and install the library. Make sure that the libraries install directory (`$(idris2 --libpath)/pg-idris/lib`) is in your `LD_LIBRARY_PATH` environment variable so that pg-idris can be found when building an app that uses it. An alternative is to copy the contents of that lib directory into the directory of any executable you build that depends on it.
+Run `make install` to build and install the library.
 
 ### Install the NodeJS library (optional)
 You only need to do this if you are targeting the NodeJS backend for Idris 2.
