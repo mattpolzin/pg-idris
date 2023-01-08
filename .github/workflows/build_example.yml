@@ -1,0 +1,27 @@
+name: pg-idris example project
+on: 
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build_example:
+    runs-on: ubuntu-latest
+    container: mattpolzin2/idris-docker:nightly
+
+    env:
+      IDRIS2_CG: chez
+
+    steps:
+      - name: Install Dependencies
+        run: apt-get update && apt-get -y install git libpq-dev libpq5 libc6-dev
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build pg-idris
+        run: make && make install
+      - name: Build example project
+        run: |
+          cd Example
+          make build
+
