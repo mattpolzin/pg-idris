@@ -17,6 +17,7 @@ Currently supports:
 - Table queries (table dictates field names and types available to select or insert).
   - Inner joins.
   - Left joins.
+  - Right joins.
 - Listen for notifications on a particular channel.
 - Request next unprocessed notification.
 
