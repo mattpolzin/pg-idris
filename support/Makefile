@@ -2,7 +2,7 @@
 IDRIS := idris2
 
 TARGET = libpg-idris
-TARGET_VERSION ?= 0.0.6
+TARGET_VERSION ?= 0.0.7
 
 INSTALLDIR = `${IDRIS} --libdir`/pg-idris-${TARGET_VERSION}
 LIBDIR = "${INSTALLDIR}/lib"
