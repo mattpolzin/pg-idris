@@ -12,7 +12,7 @@ cHelper fn = "C:" ++ fn ++ ", libpg-idris"
 
 public export
 nLibpq : String -> String
-nLibpq fn = "node:lambda:require('libpq-bare')." ++ fn
+nLibpq fn = "node:lambda:require('@mattpolzin/libpq-bare')." ++ fn
 
 export
 %foreign cHelper "string_value"
