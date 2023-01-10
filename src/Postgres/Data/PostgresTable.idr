@@ -3,7 +3,6 @@ module Postgres.Data.PostgresTable
 import Postgres.Data.PostgresType
 import public Data.DPair
 
-import Postgres.Data.HVectTmp
 import Postgres.Data.PostgresValue
 import Data.List
 import public Data.List1

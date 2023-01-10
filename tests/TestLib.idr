@@ -7,15 +7,6 @@ import Data.String.Extra
 import Data.List
 import Data.List1
 
-showHVectCSV : All Show cs => HVect cs -> String
-showHVectCSV @{[]} [] = ""
-showHVectCSV @{(z :: [])} (x :: []) = show x
-showHVectCSV @{(z :: (w :: s))} (x :: (y :: v)) = "\{show x}, \{showHVectCSV (y :: v)}"
-
-export
-All Show cs => Show (HVect cs) where
-  show vs = "[\{showHVectCSV vs}]"
-
 export
 databaseUrl : HasIO io => io (Maybe String)
 databaseUrl = getEnv "TEST_DATABASE_URL"

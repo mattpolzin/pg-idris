@@ -4,7 +4,7 @@ license = "MIT"
 brief = "Postgres support for Idris 2 programs compiled with the Chez Scheme or NodeJS backends."
 
 version = 0.0.7
-langversion >= 0.6.0
+langversion > 0.6.0
 
 sourcedir = "src"
 
@@ -15,7 +15,6 @@ modules = Postgres
         , Postgres.Data
         , Postgres.Data.Conn
         , Postgres.Data.ConnectionStatus
-        , Postgres.Data.HVectTmp
         , Postgres.Data.PostgresTable
         , Postgres.Data.PostgresType
         , Postgres.Data.PostgresValue

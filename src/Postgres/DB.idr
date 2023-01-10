@@ -1,6 +1,6 @@
 module Postgres.DB
 
-import public Postgres.Data.HVectTmp
+import public Data.Vect.Quantifiers
 import public Postgres.Data.ResultStatus
 import public Postgres.Result
 import public Postgres.Query
@@ -15,7 +15,6 @@ import Postgres.Exec
 import Postgres.LoadTypes
 import Postgres.Notification
 import Language.JSON
-import Data.Vect.Quantifiers
 
 import public Control.TransitionIndexed
 
