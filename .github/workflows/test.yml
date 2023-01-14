@@ -33,7 +33,7 @@ jobs:
       - name: Install Dependencies
         run: apt-get update && apt-get -y install git libpq-dev libpq5 libc6-dev
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Build pg-idris
         run: make && make install
       - name: Test pg-idris
