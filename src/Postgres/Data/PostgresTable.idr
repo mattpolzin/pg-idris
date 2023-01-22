@@ -161,6 +161,16 @@ FromString ColumnIdentifier where
       (table ::: column@(x :: xs)) => MkColumnId (Just $ Named table) (join "." column)
       -- ^ not great, just chooses not to handle x.y.z very well at all
 
+public export
+data Comparator : table -> ColumnIdentifier -> Type where
+  IsNull : Comparator c
+  IsNotNull : Comparator c
+  Gen : Comparator (MkColumnId s n
+
+public export
+data WhereClause : Type where
+  Condition : PostgresTable t => {0 table : t} -> (col : ColumnIdentifier) ->  Comparison col -> WhereClause
+
 ||| Some representation of a Postgres table.
 public export
 interface PostgresTable t where
