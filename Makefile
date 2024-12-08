@@ -31,8 +31,7 @@ all: deps build
 	$(IDRIS) --build parser-json.ipkg && \
 	cp -R ./build/ttc ../../../../depends/parser-json/
 
-deps: ./depends/${INDEXED_RELATIVE_DIR}
-      ./depends/parser-json
+deps: ./depends/${INDEXED_RELATIVE_DIR} ./depends/parser-json
 
 build:
 	$(IDRIS) --build $(PACKAGE)
