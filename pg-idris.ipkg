@@ -26,8 +26,8 @@ modules = Postgres
         , Postgres.Query
         , Postgres.Result
 
-depends = contrib >= 0.6.0
-        , indexed >= 0.0.9
+depends = indexed >= 0.0.9
+        , parser-json
 
 prebuild = "TARGET_VERSION=0.0.7 make -C support"
 postinstall = "TARGET_VERSION=0.0.7 make -C support install"

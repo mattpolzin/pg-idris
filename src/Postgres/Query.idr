@@ -1,6 +1,6 @@
 module Postgres.Query
 
-import public Language.JSON
+import public JSON.Parser
 import public Data.Vect.Quantifiers
 import public Postgres.Data.PostgresValue
 
@@ -75,9 +75,14 @@ pgStringResultsQuery header query conn = withExecResult conn query stringResults
 ||| be successfully parsed as JSON.
 export
 pgJSONResultQuery : (query: String) -> Conn -> IO (Maybe JSON)
-pgJSONResultQuery query conn = withExecResult conn query toJson where
- toJson : Result -> IO (Maybe JSON)
- toJson r = pure $ [ json | json <- parse !(maybeFirstRowCol !(tupleResult r)) ]
+pgJSONResultQuery query conn = withExecResult conn query toJson where 
+  toJson : Result -> IO (Maybe JSON)
+  toJson r = pure $ [ json | json <- case parseJSON Virtual !(maybeFirstRowCol !(tupleResult r)) of
+                                       Left _      =>
+                                         Nothing
+                                       Right json' =>
+                                         Just json'
+                    ]
 
 --
 -- Expected Type Results

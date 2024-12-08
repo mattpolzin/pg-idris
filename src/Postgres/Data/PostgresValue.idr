@@ -5,7 +5,7 @@ import Data.String
 import Data.List
 import Data.List1
 import Postgres.Data.PostgresType
-import Language.JSON
+import JSON.Parser
 
 public export
 data PValue : (p : PType) -> Type where
@@ -132,7 +132,12 @@ PGCast PString String where
 
 export
 IdrCast PJson JSON where
-  toIdris = parse . rawString
+  toIdris json =
+    case parseJSON Virtual (rawString json) of
+      Left _      =>
+        Nothing
+      Right json' =>
+        Just json'
 
 export
 PGCast PJson JSON where

@@ -11,7 +11,6 @@ import Data.Vect
 import Data.Vect.Elem
 import public Data.Vect.Quantifiers
 import public Data.String
-import public Data.String.Extra
 
 %default total
 
@@ -157,8 +156,8 @@ public export
 FromString ColumnIdentifier where
   fromString str =
     case (split (== '.') str) of
-      (column ::: []) => MkColumnId Nothing column
-      (table ::: column@(x :: xs)) => MkColumnId (Just $ Named table) (join "." column)
+      (column ::: []) => MkColumnId Nothing column 
+      (table ::: column@(x :: xs)) => MkColumnId (Just $ Named table) (joinBy "." column)
       -- ^ not great, just chooses not to handle x.y.z very well at all
 
 ||| Some representation of a Postgres table.
@@ -288,8 +287,8 @@ toString (There y) = toString y
 public export
 select : PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> (0 _ : HasMappings IdrCast table cols) => String
 select table cols =
-  let tableStatement = show $ tableStatement table
-      columnNames    = join "," $ show . fst <$> (toList cols)
+  let tableStatement = show $ tableStatement table 
+      columnNames    = joinBy "," $ show . fst <$> (toList cols)
   in  "SELECT \{columnNames} FROM \{tableStatement}"
 
 ||| Insert the given values into the given columns of a new row in the given table.
@@ -303,9 +302,9 @@ insert : {n : _}
          String
 insert table cols vs @{mappings} =
   let tableIdentifier = show $ Id table.tableName
-      columnNames     = '(' <+ (join "," $ show . .name <$> (toList cols)) +> ')'
-      values = values table cols vs
-      valueStrings    = '(' <+ (join "," $ values) +> ')'
+      columnNames     = (strCons '(' (joinBy "," $ show . .name <$> (toList cols))) ++ (singleton ')')
+      values          = values table cols vs
+      valueStrings    = (strCons '(' (joinBy "," $ values)) ++ (singleton ')')
   in  "INSERT INTO \{tableIdentifier} \{columnNames} VALUES \{valueStrings}"
   where
     values : {l : _} -> (table : PersistedTable) -> (cols : Vect l ColumnIdentifier) -> {colTypes : Vect l Type} -> (values : HVect colTypes) -> HasLooseMappings PGCast table (zip cols colTypes) => List String

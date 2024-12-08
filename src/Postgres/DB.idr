@@ -14,7 +14,7 @@ import Postgres.Data.PostgresTable
 import Postgres.Exec
 import Postgres.LoadTypes
 import Postgres.Notification
-import Language.JSON
+import JSON.Parser
 
 import public Control.TransitionIndexed
 
@@ -105,6 +105,7 @@ openResult conn = case (pgStatus conn) of
                        OK => pure OK
                        x  => Failed <$> pgErrorMessage conn
 
+partial
 runDatabase' : HasIO io => ConnectionState s1 -> Database a s1 s2Fn -> io (x : a ** ConnectionState (s2Fn x))
 runDatabase' CDisconnected (DBOpen url) = do conn <- pgOpen url
                                              status <- openResult conn
@@ -124,6 +125,7 @@ runDatabase' cs (Bind db f) = do (res ** cs') <- runDatabase' cs db
 runDatabase' cs (DIO io) = do v <- liftIO io
                               pure (v ** cs)
 
+partial
 export
 evalDatabase : HasIO io => Database a Closed (const Closed) -> io a
 evalDatabase db = pure $ fst !(runDatabase' CDisconnected db)
@@ -160,6 +162,7 @@ pgExec f = f . getConn
 ||| Perform some operation on an open database without closing it.
 ||| A database connection will be created beforehand and then
 ||| properly disposed of afterward.
+partial
 export
 withDB : HasIO io => (url : String) -> Database a Open (const Open) -> io $ Either String a
 withDB url dbOps = evalDatabase dbCommands
