@@ -22,7 +22,17 @@ all: deps build
 	make && \
 	cp -R ./build/ttc ../../../depends/${INDEXED_RELATIVE_DIR}/
 
+./depends/parser-json:
+	mkdir -p ./build/deps
+	mkdir -p ./depends
+	cd ./build/deps && \
+	git clone https://github.com/stefan-hoeck/idris2-parser.git && \
+	cd idris2-parser/parser-json && \
+	$(IDRIS) --build parser-json.ipkg && \
+	cp -R ./build/ttc ../../../../depends/parser-json/
+
 deps: ./depends/${INDEXED_RELATIVE_DIR}
+      ./depends/parser-json
 
 build:
 	$(IDRIS) --build $(PACKAGE)
@@ -36,13 +46,15 @@ clean:
 install:
 	$(IDRIS) --install $(PACKAGE)
 	mkdir -p $(IDRIS_LIB_DIR)/${INDEXED_RELATIVE_DIR} && \
-	cp -R ./depends/${INDEXED_RELATIVE_DIR} $(IDRIS_LIB_DIR)/
+	cp -R ./depends/${INDEXED_RELATIVE_DIR} $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/parser-json/ $(IDRIS_LIB_DIR)/
 	
 install-with-src:
 	$(IDRIS) --install-with-src $(PACKAGE)
 	mkdir -p $(IDRIS_LIB_DIR)/${INDEXED_RELATIVE_DIR} && \
-	cp -R ./depends/${INDEXED_RELATIVE_DIR} $(IDRIS_LIB_DIR)/
-	
+	cp -R ./depends/${INDEXED_RELATIVE_DIR} $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/parser-json/ $(IDRIS_LIB_DIR)/
+
 test:
 	cd tests && \
 	$(IDRIS) --build pg-idris-tests.ipkg && \
@@ -50,5 +62,5 @@ test:
 	./build/exec/test $(IDRIS) $(INTERACTIVE)
 
 check-readme:
-	idris2 -p contrib -p indexed -p pg-idris --check README.md
+	idris2 -p indexed -p parser-json -p pg-idris --check README.md
 
