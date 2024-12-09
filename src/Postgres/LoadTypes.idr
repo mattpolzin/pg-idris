@@ -124,7 +124,7 @@ parseType type = case isElem True typeSearch of
     ||| are named the same as non-array types but with
     ||| a leading underscore).
     typeSpec : (Bool, String)
-    typeSpec = if "_" `isPrefixOf` type 
+    typeSpec = if "_" `isPrefixOf` type
                   then (True, substr 1 ((length type) `minus` 1) type)
                   else (False, type)
 
