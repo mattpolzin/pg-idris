@@ -287,7 +287,7 @@ toString (There y) = toString y
 public export
 select : PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> (0 _ : HasMappings IdrCast table cols) => String
 select table cols =
-  let tableStatement = show $ tableStatement table 
+  let tableStatement = show $ tableStatement table
       columnNames    = joinBy "," $ show . fst <$> (toList cols)
   in  "SELECT \{columnNames} FROM \{tableStatement}"
 
