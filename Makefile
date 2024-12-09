@@ -22,6 +22,15 @@ all: deps build
 	make && \
 	cp -R ./build/ttc ../../../depends/${INDEXED_RELATIVE_DIR}/
 
+./depends/idris2-elab-util:
+	mkdir -p ./build/deps
+	mkdir -p ./depends
+	cd ./build/deps && \
+	git clone https://github.com/stefan-hoeck/idris2-elab-util.git && \
+	cd idris2-elab-util && \
+	$(IDRIS) --build elab-util.ipkg && \
+	cp -R ./build/ttc ../../../depends/elab-util/
+
 ./depends/idris2-parser:
 	mkdir -p ./build/deps
 	mkdir -p ./depends
@@ -39,7 +48,7 @@ all: deps build
 	$(IDRIS) --build parser-json.ipkg && \
 	cp -R ./build/ttc ../../../../depends/json/
 
-deps: ./depends/${INDEXED_RELATIVE_DIR} ./depends/idris2-parser ./depends/idris2-parser/json
+deps: ./depends/${INDEXED_RELATIVE_DIR} ./depends/idris2-elab-util ./depends/idris2-parser ./depends/idris2-parser/json
 
 build:
 	$(IDRIS) --build $(PACKAGE)
@@ -54,6 +63,7 @@ install:
 	$(IDRIS) --install $(PACKAGE)
 	mkdir -p $(IDRIS_LIB_DIR)/${INDEXED_RELATIVE_DIR} && \
 	cp -R ./depends/${INDEXED_RELATIVE_DIR} $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/elab-util/ $(IDRIS_LIB_DIR)/ && \
 	cp -R ./depends/parser/ $(IDRIS_LIB_DIR)/ && \
 	cp -R ./depends/json/ $(IDRIS_LIB_DIR)/
 	
@@ -61,6 +71,7 @@ install-with-src:
 	$(IDRIS) --install-with-src $(PACKAGE)
 	mkdir -p $(IDRIS_LIB_DIR)/${INDEXED_RELATIVE_DIR} && \
 	cp -R ./depends/${INDEXED_RELATIVE_DIR} $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/elab-util/ $(IDRIS_LIB_DIR)/ && \
 	cp -R ./depends/parser/ $(IDRIS_LIB_DIR)/ && \
 	cp -R ./depends/json/ $(IDRIS_LIB_DIR)/
 
@@ -71,5 +82,5 @@ test:
 	./build/exec/test $(IDRIS) $(INTERACTIVE)
 
 check-readme:
-	idris2 -p indexed -p parser-json -p pg-idris --check README.md
+	idris2 -p indexed -p elab-util -p parser-json -p pg-idris --check README.md
 
