@@ -156,7 +156,7 @@ public export
 FromString ColumnIdentifier where
   fromString str =
     case (split (== '.') str) of
-      (column ::: []) => MkColumnId Nothing column 
+      (column ::: []) => MkColumnId Nothing column
       (table ::: column@(x :: xs)) => MkColumnId (Just $ Named table) (joinBy "." column)
       -- ^ not great, just chooses not to handle x.y.z very well at all
 
