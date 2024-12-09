@@ -10,3 +10,6 @@ depends = contrib >= 0.6.0
         , indexed >= 0.0.9
         , pg-idris == 0.0.7
         , test >= 0.6.0
+        , elab-util
+        , parser
+        , parser-json
