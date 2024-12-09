@@ -1,3 +1,3 @@
-$1 --no-color --console-width 0 --no-banner --package pg-idris --package pg-idris-tests --package indexed --package contrib DoubleJoinStatement.idr < input
+$1 --no-color --console-width 0 --no-banner --package pg-idris --package pg-idris-tests --package indexed --package parser-json DoubleJoinStatement.idr < input
 
 rm -rf build
