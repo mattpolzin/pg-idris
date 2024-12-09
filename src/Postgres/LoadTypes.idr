@@ -102,7 +102,6 @@ arrayOrNot False ty = ty
 
 ||| Using the groupings of Postgres string names for types that will
 ||| map to each PType, parse the given string to a PType (or POther)
-partial
 parseType : String -> PType
 parseType type = case isElem True typeSearch of
                       (No _)  => POther type
@@ -126,7 +125,7 @@ parseType type = case isElem True typeSearch of
     ||| a leading underscore).
     typeSpec : (Bool, String)
     typeSpec = if "_" `isPrefixOf` type 
-                  then (True, strTail type)
+                  then (True, substr 1 ((length type) `minus` 1) type)
                   else (False, type)
 
     typeSearch : Vect ? Bool
@@ -143,13 +142,11 @@ parseType type = case isElem True typeSearch of
                   , uuidTypeStrings
                   , oidTypeStrings]
 
-partial
 typeResult : Vect 2 (Maybe String) -> Either String (Oid, PType)
 typeResult [oid, type] = [(o, parseType t) | o <- parseOid oid, t <- (maybeToEither "Found null when looking for type" type)]
 
 ||| Load Postgres types into a type dictionary. This is needed so that future queries
 ||| can identify the types of columns in responses.
-partial
 export
 pgLoadTypes : HasIO io => Conn -> io (Either String TypeDictionary)
 pgLoadTypes conn =
