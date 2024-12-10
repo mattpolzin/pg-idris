@@ -77,11 +77,7 @@ export
 pgJSONResultQuery : (query: String) -> Conn -> IO (Maybe JSON)
 pgJSONResultQuery query conn = withExecResult conn query toJson where 
   toJson : Result -> IO (Maybe JSON)
-  toJson r = pure $ [ json | json <- case parseJSON Virtual !(maybeFirstRowCol !(tupleResult r)) of
-                                       Left _      =>
-                                         Nothing
-                                       Right json' =>
-                                         Just json'
+  toJson r = pure $ [ json | json <- eitherToMaybe $ parseJSON Virtual !(maybeFirstRowCol !(tupleResult r))
                     ]
 
 --
