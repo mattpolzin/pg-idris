@@ -1,0 +1,7 @@
+1/1: Building JsonQuery (JsonQuery.idr)
+Main> COMMAND_OK
+COMMAND_OK
+COMMAND_OK
+{"hello":{"cool":true},"top":"notch","and":2}
+DONE
+Main> Bye for now!

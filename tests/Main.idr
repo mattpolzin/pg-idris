@@ -28,6 +28,7 @@ integrationTests = MkTestPool "integration tests with postgres" [] Nothing [
 , "left_join_query"
 , "insert_query"
 , "alias_query"
+, "json_query"
 ]
 
 exitError : String -> IO ()

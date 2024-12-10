@@ -79,6 +79,9 @@ install-with-src:
 	cp -R ./depends/parser*/ $(IDRIS_LIB_DIR)/ && \
 	cp -R ./depends/parser-json*/ $(IDRIS_LIB_DIR)/
 
+# When testing locally, spin up a fresh Postgres instance and set
+# TEST_DATABASE_URL to a valid `postgres://` address before running
+# the test target.
 test:
 	cd tests && \
 	$(IDRIS) --build pg-idris-tests.ipkg && \
