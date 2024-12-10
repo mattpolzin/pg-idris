@@ -33,7 +33,11 @@ To build and install this library you will need to have `clang` on MacOS (comes 
 
 ### Idris Packages
 
-The `indexed` Idris package is needed at version `0.0.9` or greater. It is cloned, built, and installed locally to this project's `depends` folder when you run `make`. You can find the package at https://github.com/mattpolzin/idris-indexed.
+The `indexed` Idris package is needed at version `0.0.10` or greater. The `parser-json` package is needed at a sufficiently recent commit (it isn't versioned with SemVer). They are cloned, built, and installed locally to this project's `depends` folder when you run `make`.
+
+You can find the `indexed` package at https://github.com/mattpolzin/idris-indexed.
+
+You can find the `parser-json` package at https://github.com/stefan-hoeck/idris2-parser.
 
 ## Usage
 
@@ -50,15 +54,15 @@ You can install this library globally with `npm install -g @mattpolzin/libpq-bar
 The important thing is that wherever you put your executable JS file (the thing Idris2 builds and by default dumps to `build/exec/<executable-name>`) you have a `node_modules` directory containing the `libpq-bare` NodeJS library (unless you've installed `libpq-bare` globally).
 
 ### Include the package
-When running `idris2`, pass the `-p pg-idris`, `-p indexed`, and `-p contrib` command line arguments.
+When running `idris2`, pass the `-p pg-idris`, `-p indexed`, `-p elab-util`, `-p parser`, and `-p parser-json` command line arguments.
 
-If you have a package manifest, add `pg-idris`, `indexed`, and `contrib` to the list of `depends`:
+If you have a package manifest, add `pg-idris` to the list of `depends` (transitive depdendency on other libraries will be taken care of by the compiler):
 ```
 package yourpackage
 
 ...
 
-depends = contrib, pg-idris
+depends = pg-idris
 ```
 
 ### High level usage

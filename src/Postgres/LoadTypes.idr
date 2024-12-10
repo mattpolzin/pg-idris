@@ -9,7 +9,6 @@ import Data.List
 import Data.Vect
 import Data.Vect.Elem
 import Data.String
-import Data.String.Extra
 import Data.Either
 
 integerTypeStrings : List String
@@ -68,7 +67,7 @@ oidTypeStrings : List String
 oidTypeStrings = ["oid"]
 
 quote : String -> String
-quote str = '\'' <+ str +> '\''
+quote str = (strCons '\'' str) ++ "'"
 
 typeQuery : String
 typeQuery = "SELECT oid, typname from pg_type where typname in (" ++ queryTypes ++ ")"
@@ -90,7 +89,7 @@ typeQuery = "SELECT oid, typname from pg_type where typname in (" ++ queryTypes 
     -- and postgres names array types the same as the type the array contains with
     -- a leading underscore.
     queryTypes : String
-    queryTypes = join "," $ quote <$> (((strCons '_') <$> supportedTypes) ++ supportedTypes)
+    queryTypes = joinBy "," $ quote <$> (((strCons '_') <$> supportedTypes) ++ supportedTypes)
 
 parseOid : Maybe String -> Either String Oid
 parseOid oid = do str <- maybeToEither "Found null when looking for Oid" oid
@@ -125,9 +124,9 @@ parseType type = case isElem True typeSearch of
     ||| are named the same as non-array types but with
     ||| a leading underscore).
     typeSpec : (Bool, String)
-    typeSpec = if "_" `isPrefixOf` type
-                  then (True, drop 1 type)
-                  else (False, type)
+    typeSpec = case (strM type) of
+                 (StrCons '_' type') => (True, type')
+                 _                   => (False, type)
 
     typeSearch : Vect ? Bool
     typeSearch = elem (snd typeSpec) <$> 

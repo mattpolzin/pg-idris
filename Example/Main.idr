@@ -3,7 +3,6 @@ module Main
 import Postgres
 import Postgres.Data.PostgresTable
 import Data.String
-import Data.String.Extra
 import Data.List
 
 error : Show a => {default "" ctx: String} -> a -> String
@@ -33,7 +32,7 @@ describe : String -> Connection -> IO ()
 describe query conn = do
   Right (_ ** _ ** (headers, _)) <- stringQuery True query conn
     | Left err => putStrLn err
-  putStrLn (join ", " $ show <$> headers)
+  putStrLn (joinBy ", " $ show <$> toList headers)
 
 describeResult : Connection -> IO ()
 describeResult conn = do
@@ -46,7 +45,7 @@ showResult conn = do
   Right (_ ** _ ** rows) <- stringQuery False query conn
     | Left err => putStrLn err
   for_ rows $ \row => do
-    putStrLn (join ", " $ (\case Just s => s; Nothing => "null") <$> row)
+    putStrLn (joinBy ", " $ (\case Just s => s; Nothing => "null") <$> toList row)
 
 showTables : Connection -> IO ()
 showTables conn = do
@@ -65,7 +64,7 @@ showFunctions conn = do
   Right (_ ** rows) <- tableQuery' functionsTable [("proname", String), ("proargnames", Maybe (List String))] conn
     | Left err => putStrLn err
   for_ rows $ \(name :: args :: []) => do
-    putStrLn $ name ++ "(" ++ (join ", " (maybe [] id args)) ++ ")"
+    putStrLn $ name ++ "(" ++ (joinBy ", " (maybe [] id args)) ++ ")"
 
 describeFnTable : Connection -> IO ()
 describeFnTable conn = do

@@ -14,7 +14,7 @@ import Postgres.Data.PostgresTable
 import Postgres.Exec
 import Postgres.LoadTypes
 import Postgres.Notification
-import Language.JSON
+import JSON.Parser
 
 import public Control.TransitionIndexed
 
@@ -294,8 +294,8 @@ nextNotification = pgExec pgNextNotification
 ||| compared to checking for new notifications at a natural point
 ||| in your programs existing logic loop unless your entire loop
 ||| is dictated by notification arrival anyway.
+covering
 export
-partial
 notificationStream : Connection -> Stream (IO Notification)
 notificationStream = pgNotificationStream . getConn
 

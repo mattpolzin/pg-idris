@@ -1,3 +1,3 @@
-$1 --no-color --console-width 0 --no-banner --package pg-idris --package pg-idris-tests --package indexed --package contrib --check LeftJoinStatement.idr
+../check.sh $1 LeftJoinStatement.idr
 
 rm -rf build

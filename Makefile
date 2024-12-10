@@ -4,7 +4,7 @@ IDRIS := idris2
 
 PACKAGE = pg-idris.ipkg
 
-INDEXED_VERSION = 0.0.9
+INDEXED_VERSION = 0.0.10
 INDEXED_RELATIVE_DIR = indexed-${INDEXED_VERSION}
 IDRIS_LIB_DIR := $(shell ${IDRIS} --libdir)
 
@@ -20,9 +20,39 @@ all: deps build
 	cd idris-indexed && \
 	git checkout ${INDEXED_VERSION} && \
 	make && \
-	cp -R ./build/ttc ../../../depends/${INDEXED_RELATIVE_DIR}/
+  IDRIS2_PREFIX=../../../depends make install && \
+  mv ../../../depends/idris2*/* ../../../depends/
 
-deps: ./depends/${INDEXED_RELATIVE_DIR}
+./depends/idris2-elab-util:
+	mkdir -p ./build/deps
+	mkdir -p ./depends
+	cd ./build/deps && \
+	git clone https://github.com/stefan-hoeck/idris2-elab-util.git && \
+	cd idris2-elab-util && \
+	$(IDRIS) --build elab-util.ipkg && \
+  IDRIS2_PACKAGE_PATH=$(IDRIS_LIB_DIR) IDRIS2_PREFIX=../../../depends $(IDRIS) --install elab-util.ipkg && \
+  mv ../../../depends/idris2*/* ../../../depends/
+
+./depends/idris2-parser:
+	mkdir -p ./build/deps
+	mkdir -p ./depends
+	cd ./build/deps && \
+	git clone https://github.com/stefan-hoeck/idris2-parser.git && \
+	cd idris2-parser && \
+	IDRIS2_PACKAGE_PATH="$(IDRIS_LIB_DIR):../../../depends" $(IDRIS) --build parser.ipkg && \
+  IDRIS2_PACKAGE_PATH="$(IDRIS_LIB_DIR):../../../depends" IDRIS2_PREFIX=../../../depends $(IDRIS) --install parser.ipkg && \
+  mv ../../../depends/idris2*/* ../../../depends/
+
+./depends/idris2-parser/json:
+	mkdir -p ./build/deps
+	mkdir -p ./depends
+	cd ./build/deps && \
+	cd idris2-parser/json && \
+	IDRIS2_PACKAGE_PATH="$(IDRIS_LIB_DIR):../../../../depends" $(IDRIS) --build parser-json.ipkg && \
+  IDRIS2_PACKAGE_PATH="$(IDRIS_LIB_DIR):../../../../depends" IDRIS2_PREFIX=../../../../depends $(IDRIS) --install parser-json.ipkg && \
+  mv ../../../../depends/idris2*/* ../../../../depends/
+
+deps: ./depends/${INDEXED_RELATIVE_DIR} ./depends/idris2-elab-util ./depends/idris2-parser ./depends/idris2-parser/json
 
 build:
 	$(IDRIS) --build $(PACKAGE)
@@ -36,13 +66,22 @@ clean:
 install:
 	$(IDRIS) --install $(PACKAGE)
 	mkdir -p $(IDRIS_LIB_DIR)/${INDEXED_RELATIVE_DIR} && \
-	cp -R ./depends/${INDEXED_RELATIVE_DIR} $(IDRIS_LIB_DIR)/
+	cp -R ./depends/${INDEXED_RELATIVE_DIR} $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/elab-util*/ $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/parser*/ $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/parser-json*/ $(IDRIS_LIB_DIR)/
 	
 install-with-src:
 	$(IDRIS) --install-with-src $(PACKAGE)
 	mkdir -p $(IDRIS_LIB_DIR)/${INDEXED_RELATIVE_DIR} && \
-	cp -R ./depends/${INDEXED_RELATIVE_DIR} $(IDRIS_LIB_DIR)/
-	
+	cp -R ./depends/${INDEXED_RELATIVE_DIR} $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/elab-util*/ $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/parser*/ $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/parser-json*/ $(IDRIS_LIB_DIR)/
+
+# When testing locally, spin up a fresh Postgres instance and set
+# TEST_DATABASE_URL to a valid `postgres://` address before running
+# the test target.
 test:
 	cd tests && \
 	$(IDRIS) --build pg-idris-tests.ipkg && \
@@ -50,5 +89,5 @@ test:
 	./build/exec/test $(IDRIS) $(INTERACTIVE)
 
 check-readme:
-	idris2 -p contrib -p indexed -p pg-idris --check README.md
+	idris2 -p indexed -p elab-util -p parser -p parser-json -p pg-idris --check README.md
 
