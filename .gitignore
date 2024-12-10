@@ -7,5 +7,6 @@
 /Example/build/*
 libpg-idris
 libpg-idris.dylib
+libpg-idris.so
 *.d
 *.o
