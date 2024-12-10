@@ -67,7 +67,7 @@ oidTypeStrings : List String
 oidTypeStrings = ["oid"]
 
 quote : String -> String
-quote str = (strCons '\'' str) ++ (singleton '\'')
+quote str = (strCons '\'' str) ++ "\\"
 
 typeQuery : String
 typeQuery = "SELECT oid, typname from pg_type where typname in (" ++ queryTypes ++ ")"
