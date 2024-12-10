@@ -86,9 +86,9 @@ pgJSONResultQuery query conn = withExecResult conn query toJson where
 
 -- Here you pass the vect of types you expect and get back results if possible.
 
-processValue : Castable expected
+processValue : Castable expectation
             -> Maybe String
-            -> Either String expected
+            -> Either String expectation
 processValue hasDefault = (asDefaultType hasDefault)
 
 processCols : {0 expected : Vect colCount Type}

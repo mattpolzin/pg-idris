@@ -171,6 +171,7 @@ interface PostgresTable t where
   ||| Set the alias on a table.
   as : t -> String -> t
 
+export
 infix 0 `as`
 
 export
@@ -198,9 +199,15 @@ PostgresTable RuntimeTable where
   tableStatement = .tableStatement
   columns = .columns
 
-  as (RT (Identifier str x) columns) a = RT (Identifier str (Just $ Named a)) (mapFst (replaceSource . Just $ Named a) <$> columns)
-  as (RT (Subquery str x) columns) a = RT (Subquery str (Named a)) (mapFst (replaceSource . Just $ Named a) <$> columns)
-  as (RT (Fragment str) columns) a = RT (Subquery "SELECT * FROM \{str}" (Named a)) (mapFst (replaceSource . Just $ Named a) <$> columns)
+  as (RT (Identifier str x) columns) a = 
+    RT (Identifier str (Just $ Named a))
+       (mapFst (replaceSource . Just $ Named a) <$> columns)
+  as (RT (Subquery str x) columns) a = 
+    RT (Subquery str (Named a))
+       (mapFst (replaceSource . Just $ Named a) <$> columns)
+  as (RT (Fragment str) columns) a = 
+    RT (Subquery "SELECT * FROM \{str}" (Named a))
+       (mapFst (replaceSource . Just $ Named a) <$> columns)
 
 ||| A persisted table is an actual named (or view) table in the database.
 public export
@@ -239,7 +246,9 @@ col nullable pt = Evidence pt (MkColType nullable pt)
 |||                          ]
 ||| ```
 public export
-pgTable : (name : String) -> (columns : List (String, Nullability, PType)) -> PersistedTable
+pgTable : (name : String) 
+       -> (columns : List (String, Nullability, PType))
+       -> PersistedTable
 pgTable name columns = PT name (mapSnd (uncurry col) <$> columns)
 
 ||| A mapping between a column name and Idris type to some element in a list of column identifiers
@@ -250,7 +259,10 @@ pgTable name columns = PT name (mapSnd (uncurry col) <$> columns)
 ||| not succeed against multiple columns (Postgres will complain of ambiguity, for good reason). Use the
 ||| ColumnMapping type to avoid loose matches.
 public export
-data LooseColumnMapping : (0 _ : PType -> Type -> Type) -> List (ColumnIdentifier, Exists PColType) -> (ColumnIdentifier, Type) -> Type where
+data LooseColumnMapping : (0 _ : PType -> Type -> Type)
+                       -> List (ColumnIdentifier, Exists PColType)
+                       -> (ColumnIdentifier, Type)
+                       -> Type where
   HereNul       : (ident : ColumnIdentifier) -> (ty : Type) -> castTy pt ty => LooseColumnMapping castTy ((ident, (Evidence pt (MkColType Nullable pt))) :: xs) (ident, Maybe ty)
   HereNulLoose  : (columnName : String) -> (ty : Type) -> castTy pt ty => LooseColumnMapping castTy ((MkColumnId _ columnName, (Evidence pt (MkColType Nullable pt))) :: xs) (MkColumnId Nothing columnName, Maybe ty)
   Here          : (ident : ColumnIdentifier) -> (ty : Type) -> castTy pt ty => LooseColumnMapping castTy ((ident, (Evidence pt (MkColType NonNullable pt))) :: xs) (ident, ty)
@@ -258,7 +270,12 @@ data LooseColumnMapping : (0 _ : PType -> Type -> Type) -> List (ColumnIdentifie
   There         : LooseColumnMapping castTy xs (ident, ty) -> LooseColumnMapping castTy (x :: xs) (ident, ty)
 
 public export
-HasLooseMappings : {n : _} -> (0 castTy : PType -> Type -> Type) -> PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> Type
+HasLooseMappings : {n : _} 
+                -> (0 castTy : PType -> Type -> Type)
+                -> PostgresTable t => 
+                   (table : t)
+                -> (cols : Vect n (ColumnIdentifier, Type))
+                -> Type
 HasLooseMappings castTy table cols = All (LooseColumnMapping castTy (columns table)) cols
 
 namespace Strict
@@ -266,13 +283,21 @@ namespace Strict
   ||| and Postgres types. This mapping proves that the column identifiers exists and that the Postgres
   ||| type for that column can be cast to the Idris type specified.
   public export
-  data ColumnMapping : (0 _ : PType -> Type -> Type) -> List (ColumnIdentifier, Exists PColType) -> (ColumnIdentifier, Type) -> Type where
+  data ColumnMapping : (0 _ : PType -> Type -> Type)
+                    -> List (ColumnIdentifier, Exists PColType)
+                    -> (ColumnIdentifier, Type)
+                    -> Type where
     HereNul       : (ident : ColumnIdentifier) -> (ty : Type) -> castTy pt ty => ColumnMapping castTy ((ident, (Evidence pt (MkColType Nullable pt))) :: xs) (ident, Maybe ty)
     Here          : (ident : ColumnIdentifier) -> (ty : Type) -> castTy pt ty => ColumnMapping castTy ((ident, (Evidence pt (MkColType NonNullable pt))) :: xs) (ident, ty)
     There         : ColumnMapping castTy xs (ident, ty) -> ColumnMapping castTy (x :: xs) (ident, ty)
 
   public export
-  HasMappings : {n : _} -> (0 castTy : PType -> Type -> Type) -> PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> Type
+  HasMappings : {n : _} 
+             -> (0 castTy : PType -> Type -> Type)
+             -> PostgresTable t =>
+                (table : t)
+             -> (cols : Vect n (ColumnIdentifier, Type))
+             -> Type
   HasMappings castTy table cols = All (ColumnMapping castTy (columns table)) cols
 
 toString : LooseColumnMapping PGCast table (colName, colType) -> colType -> String
@@ -285,7 +310,11 @@ toString (There y) = toString y
 ||| Create a select statement based on the columns you would like to grab from the
 ||| given table.
 public export
-select : PostgresTable t => (table : t) -> (cols : Vect n (ColumnIdentifier, Type)) -> (0 _ : HasMappings IdrCast table cols) => String
+select : PostgresTable t => 
+         (table : t)
+      -> (cols : Vect n (ColumnIdentifier, Type))
+      -> (0 _ : HasMappings IdrCast table cols) =>
+         String
 select table cols =
   let tableStatement = show $ tableStatement table
       columnNames    = joinBy "," $ show . fst <$> (toList cols)
@@ -307,7 +336,13 @@ insert table cols vs @{mappings} =
       valueStrings    = (strCons '(' (joinBy "," $ values)) ++ ")"
   in  "INSERT INTO \{tableIdentifier} \{columnNames} VALUES \{valueStrings}"
   where
-    values : {l : _} -> (table : PersistedTable) -> (cols : Vect l ColumnIdentifier) -> {colTypes : Vect l Type} -> (values : HVect colTypes) -> HasLooseMappings PGCast table (zip cols colTypes) => List String
+    values : {l : _} 
+          -> (table : PersistedTable)
+          -> (cols : Vect l ColumnIdentifier)
+          -> {colTypes : Vect l Type}
+          -> (values : HVect colTypes)
+          -> HasLooseMappings PGCast table (zip cols colTypes) =>
+             List String
     values table [] [] = []
     values table (x :: xs) (v :: vs) @{m :: ms} = toString m v :: values table xs vs @{ms}
 
@@ -316,11 +351,15 @@ data Join : t1 -> t2 -> Type where
   On : PostgresTable t => PostgresTable u => {t1 : t} -> {t2 : u} -> (c1 : ColumnIdentifier) -> (c2 : ColumnIdentifier) -> (0 _ : Elem c1 (Builtin.fst <$> (columns t1))) => (0 _ : Elem c2 (Builtin.fst <$> (columns t2))) => Join t1 t2
 
 public export
-HasOnMapping : ColumnIdentifier -> PostgresTable t =>  (table : t) -> Type
+HasOnMapping : ColumnIdentifier -> PostgresTable t => (table : t) -> Type
 HasOnMapping c table = Either (Elem c (fst <$> (columns table))) (AnonymousColumnIdentifier c, Elem (replaceSource (aliasOrName table) c) (fst <$> (columns table)))
 
 public export
-elemForOnMapping : PostgresTable t => (table : t) -> (c : ColumnIdentifier) -> HasOnMapping c table -> (c' ** Elem c' (Builtin.fst <$> (columns table)))
+elemForOnMapping : PostgresTable t =>
+                   (table : t)
+                -> (c : ColumnIdentifier)
+                -> HasOnMapping c table
+                -> (c' ** Elem c' (Builtin.fst <$> (columns table)))
 elemForOnMapping table c (Left m) = (c ** m)
 elemForOnMapping table c (Right (_, m)) = (replaceSource (aliasOrName table) c ** m)
 
@@ -331,7 +370,15 @@ elemForOnMapping table c (Right (_, m)) = (replaceSource (aliasOrName table) c *
 ||| innerJoin' table1 table2 ("col_from_table1" == "col_from_table2")
 ||| ```
 public export
-(==) : PostgresTable t => PostgresTable u => {t1 : t} -> {t2 : u} -> (c1 : ColumnIdentifier) -> (c2 : ColumnIdentifier) -> {auto on1 : HasOnMapping c1 t1} -> {auto on2 : HasOnMapping c2 t2} -> Join t1 t2
+(==) : PostgresTable t => 
+       PostgresTable u =>
+       {t1 : t}
+    -> {t2 : u}
+    -> (c1 : ColumnIdentifier)
+    -> (c2 : ColumnIdentifier)
+    -> {auto on1 : HasOnMapping c1 t1}
+    -> {auto on2 : HasOnMapping c2 t2}
+    -> Join t1 t2
 (==) c1 c2 {on1} {on2} with (elemForOnMapping t1 c1 on1, elemForOnMapping t2 c2 on2)
   (==) c1 c2 {on1} {on2} | ((c1' ** on1'), (c2' ** on2')) = On c1' c2'
 
@@ -437,6 +484,7 @@ onColumns (MkTP Inner table1 table2) joinOn = innerJoin' table1 table2 joinOn
 onColumns (MkTP Left table1 table2) joinOn = leftJoin' table1 table2 joinOn
 onColumns (MkTP Right table1 table2) joinOn = rightJoin' table1 table2 joinOn
 
+export
 infixl 10 `innerJoin`, `leftJoin`, `rightJoin`, `onColumns`
 
 mappingCastable : {cs : _} -> ColumnMapping IdrCast cs (ident, ty) => Castable ty
