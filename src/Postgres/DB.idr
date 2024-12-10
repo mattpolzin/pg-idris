@@ -294,6 +294,7 @@ nextNotification = pgExec pgNextNotification
 ||| compared to checking for new notifications at a natural point
 ||| in your programs existing logic loop unless your entire loop
 ||| is dictated by notification arrival anyway.
+covering
 export
 notificationStream : Connection -> Stream (IO Notification)
 notificationStream = pgNotificationStream . getConn

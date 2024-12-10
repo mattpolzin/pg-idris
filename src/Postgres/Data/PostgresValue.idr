@@ -133,11 +133,7 @@ PGCast PString String where
 export
 IdrCast PJson JSON where
   toIdris json =
-    case parseJSON Virtual (rawString json) of
-      Left _      =>
-        Nothing
-      Right json' =>
-        Just json'
+    eitherToMaybe $ parseJSON Virtual (rawString json)
 
 export
 PGCast PJson JSON where

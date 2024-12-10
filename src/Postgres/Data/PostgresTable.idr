@@ -302,9 +302,9 @@ insert : {n : _}
          String
 insert table cols vs @{mappings} =
   let tableIdentifier = show $ Id table.tableName
-      columnNames     = (strCons '(' (joinBy "," $ show . .name <$> (toList cols))) ++ (singleton ')')
+      columnNames     = (strCons '(' (joinBy "," $ show . .name <$> (toList cols))) ++ ")"
       values          = values table cols vs
-      valueStrings    = (strCons '(' (joinBy "," $ values)) ++ (singleton ')')
+      valueStrings    = (strCons '(' (joinBy "," $ values)) ++ ")"
   in  "INSERT INTO \{tableIdentifier} \{columnNames} VALUES \{valueStrings}"
   where
     values : {l : _} -> (table : PersistedTable) -> (cols : Vect l ColumnIdentifier) -> {colTypes : Vect l Type} -> (values : HVect colTypes) -> HasLooseMappings PGCast table (zip cols colTypes) => List String
