@@ -30,7 +30,7 @@ all: deps build
 	git clone https://github.com/stefan-hoeck/idris2-elab-util.git && \
 	cd idris2-elab-util && \
 	$(IDRIS) --build elab-util.ipkg && \
-  IDRIS2_PREFIX=../../../depends $(IDRIS) --install elab-util.ipkg && \
+  IDRIS2_PACKAGE_PATH=$(IDRIS_LIB_DIR) IDRIS2_PREFIX=../../../depends $(IDRIS) --install elab-util.ipkg && \
   mv ../../../depends/idris2*/* ../../../depends/
 
 ./depends/idris2-parser:
@@ -39,8 +39,8 @@ all: deps build
 	cd ./build/deps && \
 	git clone https://github.com/stefan-hoeck/idris2-parser.git && \
 	cd idris2-parser && \
-	IDRIS2_PACKAGE_PATH=../../../depends $(IDRIS) --build parser.ipkg && \
-  IDRIS2_PACKAGE_PATH=../../../depends IDRIS2_PREFIX=../../../depends $(IDRIS) --install parser.ipkg && \
+	IDRIS2_PACKAGE_PATH="$(IDRIS_LIB_DIR):../../../depends" $(IDRIS) --build parser.ipkg && \
+  IDRIS2_PACKAGE_PATH="$(IDRIS_LIB_DIR):../../../depends" IDRIS2_PREFIX=../../../depends $(IDRIS) --install parser.ipkg && \
   mv ../../../depends/idris2*/* ../../../depends/
 
 ./depends/idris2-parser/json:
@@ -48,8 +48,8 @@ all: deps build
 	mkdir -p ./depends
 	cd ./build/deps && \
 	cd idris2-parser/json && \
-	IDRIS2_PACKAGE_PATH=../../../../depends $(IDRIS) --build parser-json.ipkg && \
-  IDRIS2_PACKAGE_PATH=../../../../depends IDRIS2_PREFIX=../../../../depends $(IDRIS) --install parser-json.ipkg && \
+	IDRIS2_PACKAGE_PATH="$(IDRIS_LIB_DIR):../../../../depends" $(IDRIS) --build parser-json.ipkg && \
+  IDRIS2_PACKAGE_PATH="$(IDRIS_LIB_DIR):../../../../depends" IDRIS2_PREFIX=../../../../depends $(IDRIS) --install parser-json.ipkg && \
   mv ../../../../depends/idris2*/* ../../../../depends/
 
 deps: ./depends/${INDEXED_RELATIVE_DIR} ./depends/idris2-elab-util ./depends/idris2-parser ./depends/idris2-parser/json
