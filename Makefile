@@ -86,5 +86,5 @@ test:
 	./build/exec/test $(IDRIS) $(INTERACTIVE)
 
 check-readme:
-	idris2 -p indexed -p elab-util -p parser-json -p pg-idris --check README.md
+	idris2 -p indexed -p elab-util -p parser -p parser-json -p pg-idris --check README.md
 
