@@ -4,7 +4,7 @@ IDRIS := idris2
 
 PACKAGE = pg-idris.ipkg
 
-INDEXED_VERSION = 0.0.9
+INDEXED_VERSION = 0.0.10
 INDEXED_RELATIVE_DIR = indexed-${INDEXED_VERSION}
 IDRIS_LIB_DIR := $(shell ${IDRIS} --libdir)
 

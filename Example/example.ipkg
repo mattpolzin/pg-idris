@@ -6,4 +6,4 @@ executable = example
 
 main = Main
 
-depends = contrib, pg-idris
+depends = pg-idris

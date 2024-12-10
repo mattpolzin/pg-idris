@@ -3,8 +3,8 @@ authors = "Mathew Polzin"
 license = "MIT"
 brief = "Postgres support for Idris 2 programs compiled with the Chez Scheme or NodeJS backends."
 
-version = 0.0.7
-langversion > 0.6.0
+version = 0.0.8
+langversion > 0.7.0
 
 sourcedir = "src"
 
@@ -26,9 +26,9 @@ modules = Postgres
         , Postgres.Query
         , Postgres.Result
 
-depends = indexed >= 0.0.9
+depends = indexed >= 0.0.10
         , parser-json
 
-prebuild = "TARGET_VERSION=0.0.7 make -C support"
-postinstall = "TARGET_VERSION=0.0.7 make -C support install"
-postclean = "TARGET_VERSION=0.0.7 make -C support clean"
+prebuild = "TARGET_VERSION=0.0.8 make -C support"
+postinstall = "TARGET_VERSION=0.0.8 make -C support install"
+postclean = "TARGET_VERSION=0.0.8 make -C support clean"
