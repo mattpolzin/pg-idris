@@ -1,3 +1,3 @@
-../run.sh $1 ./DoubleJoinStatement.idr ./input
+../run.sh $1 DoubleJoinStatement.idr ./input
 
 rm -rf build
