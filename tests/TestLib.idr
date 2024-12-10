@@ -3,7 +3,6 @@ module TestLib
 import Postgres
 import System
 import Data.String
-import Data.String.Extra
 import Data.List
 import Data.List1
 
@@ -18,7 +17,7 @@ testDatabaseUrl url =
   let splitUrl = split (== '/') url
       allButDatabase = init splitUrl
   in
-      join "/" $ (allButDatabase `snoc` "pg_idris_test")
+      joinBy "/" $ (allButDatabase `snoc` "pg_idris_test")
 
 public export
 record Config where
