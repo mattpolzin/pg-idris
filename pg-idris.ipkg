@@ -27,7 +27,6 @@ modules = Postgres
         , Postgres.Result
 
 depends = indexed >= 0.0.9
-        , parser
         , parser-json
 
 prebuild = "TARGET_VERSION=0.0.7 make -C support"
