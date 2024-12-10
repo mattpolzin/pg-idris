@@ -1,3 +1,3 @@
-$1 --no-color --console-width 0 --no-banner --package pg-idris --package pg-idris-tests --package indexed --package parser-json InsertQuery.idr < input
+../run.sh $1 InsertQuery.idr input
 
 rm -rf build
