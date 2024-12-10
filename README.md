@@ -33,7 +33,11 @@ To build and install this library you will need to have `clang` on MacOS (comes 
 
 ### Idris Packages
 
-The `indexed` Idris package is needed at version `0.0.9` or greater. It is cloned, built, and installed locally to this project's `depends` folder when you run `make`. You can find the package at https://github.com/mattpolzin/idris-indexed.
+The `indexed` Idris package is needed at version `0.0.9` or greater. The `parser-json` package is needed at a sufficiently recent commit (it isn't versioned with SemVer). They are cloned, built, and installed locally to this project's `depends` folder when you run `make`.
+
+You can find the `indexed` package at https://github.com/mattpolzin/idris-indexed.
+
+You can find the `parser-json` package at https://github.com/stefan-hoeck/idris2-parser.
 
 ## Usage
 
