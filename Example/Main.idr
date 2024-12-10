@@ -32,7 +32,7 @@ describe : String -> Connection -> IO ()
 describe query conn = do
   Right (_ ** _ ** (headers, _)) <- stringQuery True query conn
     | Left err => putStrLn err
-  putStrLn (joinBy ", " $ show <$> headers)
+  putStrLn (joinBy ", " $ show <$> toList headers)
 
 describeResult : Connection -> IO ()
 describeResult conn = do
@@ -45,7 +45,7 @@ showResult conn = do
   Right (_ ** _ ** rows) <- stringQuery False query conn
     | Left err => putStrLn err
   for_ rows $ \row => do
-    putStrLn (joinBy ", " $ (\case Just s => s; Nothing => "null") <$> row)
+    putStrLn (joinBy ", " $ (\case Just s => s; Nothing => "null") <$> toList row)
 
 showTables : Connection -> IO ()
 showTables conn = do
