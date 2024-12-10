@@ -54,15 +54,15 @@ You can install this library globally with `npm install -g @mattpolzin/libpq-bar
 The important thing is that wherever you put your executable JS file (the thing Idris2 builds and by default dumps to `build/exec/<executable-name>`) you have a `node_modules` directory containing the `libpq-bare` NodeJS library (unless you've installed `libpq-bare` globally).
 
 ### Include the package
-When running `idris2`, pass the `-p pg-idris`, `-p indexed`, and `-p contrib` command line arguments.
+When running `idris2`, pass the `-p pg-idris`, `-p indexed`, `-p elab-util`, `-p parser`, and `-p parser-json` command line arguments.
 
-If you have a package manifest, add `pg-idris`, `indexed`, and `contrib` to the list of `depends`:
+If you have a package manifest, add `pg-idris` to the list of `depends` (transitive depdendency on other libraries will be taken care of by the compiler):
 ```
 package yourpackage
 
 ...
 
-depends = contrib, pg-idris
+depends = pg-idris
 ```
 
 ### High level usage
