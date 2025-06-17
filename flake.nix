@@ -15,6 +15,7 @@
       packages = forEachSystem (
         system: pkgs:
         let
+          buildIdris = idris2-packageset.buildIdris.${system};
           buildIdris' = idris2-packageset.buildIdris'.${system};
         in
         {
@@ -31,6 +32,26 @@
               pkgs.postgresql.pg_config
             ];
           };
+
+          test = (buildIdris {
+            ipkgName = "pg-idris-tests";
+            src = builtins.path {
+              path = ./tests;
+              name = "pg-idris-tests-src";
+            };
+            buildInputs = [
+              pkgs.postgresql.lib
+            ];
+            idrisLibraries = [
+              self.packages.${system}.default
+            ];
+            postInstall = ''
+              wrapProgram $out/bin/test \
+                --suffix LD_LIBRARY_PATH   : ${lib.makeLibraryPath [ pkgs.postgresql.lib ]} \
+                --suffix DYLD_LIBRARY_PATH : ${lib.makeLibraryPath [ pkgs.postgresql.lib ]} \
+                --suffix IDRIS2_PACKAGE_PATH : ${lib.makeLibraryPath [ self.packages.${system}.default ]}/idris2-0.7.0
+            '';
+          }).executable;
         }
       );
       devShells = forEachSystem (
