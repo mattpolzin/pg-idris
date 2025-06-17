@@ -269,3 +269,7 @@ execJoin3 = exec $
                 , ("third_table.location" , Maybe String)
                 ]
 ```
+
+#### Work with custom Postgres types
+If you are working with a custom Postgres type then you need to snag its OID.
+Then you can create an alias of the 
