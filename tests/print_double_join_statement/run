@@ -1,3 +1,0 @@
-../run.sh $1 DoubleJoinStatement.idr ./input
-
-rm -rf build

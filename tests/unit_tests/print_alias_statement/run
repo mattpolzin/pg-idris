@@ -1,0 +1,3 @@
+../../run.sh $1 AliasStatement.idr ./input
+
+rm -rf build
