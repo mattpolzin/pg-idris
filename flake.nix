@@ -39,6 +39,18 @@
             ];
           };
 
+          testLib =
+            (buildIdris {
+              ipkgName = "pg-idris-tests";
+              src = builtins.path {
+                path = ./tests;
+                name = "pg-idris-tests-src";
+              };
+              idrisLibraries = [
+                self.packages.${system}.default
+              ];
+            }).library';
+
           test =
             (buildIdris {
               ipkgName = "pg-idris-tests";
@@ -46,6 +58,7 @@
                 path = ./tests;
                 name = "pg-idris-tests-src";
               };
+              meta.mainProgram = "test";
               buildInputs = [
                 pkgs.postgresql.lib
               ];
@@ -56,8 +69,9 @@
                 wrapProgram $out/bin/test \
                   --suffix LD_LIBRARY_PATH   : ${lib.makeLibraryPath [ pkgs.postgresql.lib ]} \
                   --suffix DYLD_LIBRARY_PATH : ${lib.makeLibraryPath [ pkgs.postgresql.lib ]} \
+                  --suffix IDRIS2_PACKAGE_PATH : ${self.packages.${system}.testLib.IDRIS2_PACKAGE_PATH} \
                   --suffix IDRIS2_PACKAGE_PATH : ${
-                    lib.makeLibraryPath [ self.packages.${system}.default ]
+                    lib.makeLibraryPath [ self.packages.${system}.testLib ]
                   }/idris2-0.7.0
                   # ^ The tests need to know about the pg-idris package path at
                   # runtime because each test builds and/or runs some Idris code.
@@ -116,6 +130,36 @@
                                   runHook postBuild
                 '';
               });
+          compTime =
+            let
+              test = lib.getExe self.packages.${system}.test;
+            in
+            pkgs.stdenvNoCC.mkDerivation {
+              pname = "compTime-check";
+              version = self.packages.${system}.default;
+
+              src = ./tests;
+
+              nativeBuildInputs = [
+                pkgs.coreutils
+                idris2-packageset.packages.${system}.idris2
+              ];
+
+              preBuild = ''
+                patchShebangs --build \
+                  check.sh run.sh
+              '';
+
+              buildPhase = ''
+                runHook preBuild
+
+                ${test} idris2 --only compile_time | tee $out
+
+                runHook postBuild
+              '';
+
+              dontInstall = true;
+            };
         }
       );
 

@@ -21,9 +21,10 @@ exitError err = do
 
 main : IO ()
 main = do
-  Right config <- getTestConfig
-    | Left err => exitError err
-  True <- withTestDB {setup=True} $ do
+  Full config <- getTestConfig
+    | Err err => exitError err
+    | CompTime => runner [ !compileTimeTests ]
+  True <- withTestDB {setup=True} config $ do
             liftIO' . putStrLn $ "Testing against " ++ config.databaseUrl
             dbSetup
     | False => exitError "Cannot run tests without test database."
