@@ -24,7 +24,7 @@ main = do
   Full config <- getTestConfig
     | Err err => exitError err
     | CompTime => runner [ !compileTimeTests ]
-  True <- withTestDB {setup=True} config $ do
+  True <- withTestDB {setup=True} {config=Just config} $ do
             liftIO' . putStrLn $ "Testing against " ++ config.databaseUrl
             dbSetup
     | False => exitError "Cannot run tests without test database."

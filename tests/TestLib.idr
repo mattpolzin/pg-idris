@@ -51,10 +51,20 @@ dbSetup = TransitionIndexed.do
   liftIO' . putStrLn $ show res2
   liftIO' $ putStrLn "test database created"
 
+getTestConfigIfNeeded : HasIO io => Maybe Config -> io Mode
+getTestConfigIfNeeded (Just config) = pure $ Full config
+getTestConfigIfNeeded Nothing = getTestConfig
+
 export
-withTestDB : HasIO io => {default False setup : Bool} -> Config -> (run : Database () Open (const Open)) -> io Bool
-withTestDB {setup} config run = do
-  let databaseUrl : String = if setup then config.databaseUrl else testDatabaseUrl config.databaseUrl
+withTestDB : HasIO io => {default False setup : Bool} -> {default Nothing config: Maybe Config} -> (run : Database () Open (const Open)) -> io Bool
+withTestDB {setup} {config} run = do
+  Full config' <- getTestConfigIfNeeded config
+    | CompTime => do putStrLn "CompTime only config cannot be used to connect to a database"
+                     pure False
+    | Err err => do putStrLn err
+                    pure False
+
+  let databaseUrl : String = if setup then config'.databaseUrl else testDatabaseUrl config'.databaseUrl
   Right () <- withDB databaseUrl run
     | Left err => do putStrLn err
                      pure False
