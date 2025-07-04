@@ -1,3 +1,0 @@
-../check.sh $1 AliasStatement.idr
-
-rm -rf build

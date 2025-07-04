@@ -5,31 +5,14 @@ import Test.Golden
 import System
 import Postgres
 
-compileTimeTests : TestPool
-compileTimeTests = MkTestPool "compile-time tests" [] Nothing [
-  "inner_join_statement"
-, "left_join_statement"
-, "alias_statement"
-]
+compileTimeTests : Lazy (IO TestPool)
+compileTimeTests = testsInDir "compile_time" "compile-time tests"
 
-unitTests : TestPool
-unitTests = MkTestPool "unit tests" [] Nothing [
-  "print_double_join_statement"
-, "print_left_and_inner_join_statements"
-, "print_alias_statement"
-]
+unitTests : Lazy (IO TestPool)
+unitTests = testsInDir "unit_tests" "unit tests"
 
-integrationTests : TestPool
-integrationTests = MkTestPool "integration tests with postgres" [] Nothing [
-  -- database query tests
-  "expected_type_query"
-, "table_query"
-, "inner_join_query"
-, "left_join_query"
-, "insert_query"
-, "alias_query"
-, "json_query"
-]
+integrationTests : Lazy (IO TestPool)
+integrationTests = testsInDir "integration" "integration tests with postgres"
 
 exitError : String -> IO ()
 exitError err = do
@@ -38,11 +21,15 @@ exitError err = do
 
 main : IO ()
 main = do
-  Right config <- getTestConfig
-    | Left err => exitError err
-  True <- withTestDB {setup=True} $ do
+  Full config <- getTestConfig
+    | Err err => exitError err
+    | CompTime => runner [ !compileTimeTests ]
+  True <- withTestDB {setup=True} {config=Just config} $ do
             liftIO' . putStrLn $ "Testing against " ++ config.databaseUrl
             dbSetup
     | False => exitError "Cannot run tests without test database."
-  runner [compileTimeTests, unitTests, integrationTests]
+  runner [ !compileTimeTests
+         , !unitTests
+         , !integrationTests
+         ]
 

@@ -24,12 +24,22 @@ record Config where
   constructor MkConfig
   databaseUrl : String
 
+public export
+data Mode = Full Config | CompTime | Err String
+
 export
-getTestConfig : HasIO io => io (Either String Config)
+getTestConfig : HasIO io => io Mode
 getTestConfig = do 
   Just url <- databaseUrl
-    | Nothing => pure $ Left "Missing TEST_DATABASE_URL environment variable needed for testing."
-  pure $ Right $ MkConfig url
+    | Nothing => tryPartial
+  pure $ Full $ MkConfig url
+
+  where
+    tryPartial : io Mode
+    tryPartial = Prelude.do
+      ("--only" :: "compile_time" :: _) <- drop 2 <$> getArgs
+        | _ => pure $ Err "Missing TEST_DATABASE_URL environment variable needed for testing."
+      pure CompTime
 
 export
 dbSetup : Database () Open (const Open)
@@ -41,13 +51,20 @@ dbSetup = TransitionIndexed.do
   liftIO' . putStrLn $ show res2
   liftIO' $ putStrLn "test database created"
 
+getTestConfigIfNeeded : HasIO io => Maybe Config -> io Mode
+getTestConfigIfNeeded (Just config) = pure $ Full config
+getTestConfigIfNeeded Nothing = getTestConfig
+
 export
-withTestDB : HasIO io => {default False setup : Bool} -> (run : Database () Open (const Open)) -> io Bool
-withTestDB {setup} run = do
-  Right config <- getTestConfig
-    | Left err => do putStrLn err
+withTestDB : HasIO io => {default False setup : Bool} -> {default Nothing config: Maybe Config} -> (run : Database () Open (const Open)) -> io Bool
+withTestDB {setup} {config} run = do
+  Full config' <- getTestConfigIfNeeded config
+    | CompTime => do putStrLn "CompTime only config cannot be used to connect to a database"
                      pure False
-  let databaseUrl : String = if setup then config.databaseUrl else testDatabaseUrl config.databaseUrl
+    | Err err => do putStrLn err
+                    pure False
+
+  let databaseUrl : String = if setup then config'.databaseUrl else testDatabaseUrl config'.databaseUrl
   Right () <- withDB databaseUrl run
     | Left err => do putStrLn err
                      pure False

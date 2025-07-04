@@ -269,3 +269,38 @@ execJoin3 = exec $
                 , ("third_table.location" , Maybe String)
                 ]
 ```
+
+#### Work with custom Postgres types
+If you are working with a custom Postgres type you can use the `POther` `PType`
+constructor. You'll also probably want to add an `IdrCast` and possibly `PGCast`
+implementation to make it possible to expect your type as a result in queries.
+
+For example, if you have a Postgres enum type named `LOW_NUM` with possible
+values `ONE`, `TWO`, and `THREE`, you can create the following type in your
+Idris code:
+```idris
+PLowNum : PType
+PLowNum = POther "LOW_NUM"
+
+-- Fancier IdrCast implementations could validate the value is one of `ONE`,
+-- `TWO`, or `THREE`.
+-- Or, you could even create an Idris enum and have that be the output instead
+-- of a string value.
+
+IdrCast PLowNum String where
+  toIdris = Just . rawString
+```
+
+Now we can write tables that refer to this type and queries that expect string
+values for this type:
+```idris
+myTypeTable : PersistedTable
+myTypeTable = pgTable "third_table" [
+  ("id"     , NonNullable, PInteger)
+, ("low_num", NonNullable, PLowNum)
+]
+
+execSelectLowNum : Database ? Open (const Open)
+execSelectLowNum = exec $
+  StringColumns.tableQuery' myTypeTable [("id", Integer), ("low_num", String)]
+```

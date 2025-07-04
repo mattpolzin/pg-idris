@@ -10,3 +10,4 @@ libpg-idris.dylib
 libpg-idris.so
 *.d
 *.o
+result

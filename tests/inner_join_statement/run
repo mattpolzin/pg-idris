@@ -1,3 +1,0 @@
-../check.sh $1 JoinStatement.idr
-
-rm -rf build
