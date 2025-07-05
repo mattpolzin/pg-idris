@@ -28,7 +28,7 @@
           buildIdris = idris2-packageset.buildIdris.${system};
         in
         {
-          default = buildIdris {
+          default = (buildIdris {
             ipkgName = "my-project";
             # TODO: change this ^
             src = ./.;
@@ -39,7 +39,7 @@
                 --suffix LD_LIBRARY_PATH   : ${lib.makeLibraryPath [ pkgs.postgresql.lib ]} \
                 --suffix DYLD_LIBRARY_PATH : ${lib.makeLibraryPath [ pkgs.postgresql.lib ]}
             '';
-          };
+          }).executable;
         }
       );
       devShells = forEachSystem (
