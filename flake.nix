@@ -15,11 +15,15 @@
     let
       inherit (nixpkgs) lib;
       forEachSystem =
-        f: lib.genAttrs lib.systems.flakeExposed (system: f system nixpkgs.legacyPackages.${system});
+        f:
+        lib.genAttrs lib.systems.flakeExposed (
+          system:
+          f system nixpkgs.legacyPackages.${system} idris2-packageset.packages.${system}.idris2Packages
+        );
     in
     {
       packages = forEachSystem (
-        system: pkgs:
+        system: pkgs: idris2Packages:
         let
           buildIdris = idris2-packageset.buildIdris.${system};
           buildIdris' = idris2-packageset.buildIdris'.${system};
@@ -80,10 +84,10 @@
         }
       );
       devShells = forEachSystem (
-        system: pkgs:
+        system: pkgs: idris2Packages:
         let
-          inherit (idris2-packageset.packages.${system}) idris2 idris2Lsp;
-          inherit (nixpkgs.legacyPackages.${system}) mkShell;
+          inherit (idris2Packages) idris2 idris2Lsp;
+          inherit (pkgs) mkShell;
         in
         {
           default = mkShell {
@@ -96,12 +100,25 @@
               self.packages.${system}.default
             ];
           };
+          tests = mkShell {
+            packages = [
+              idris2
+              idris2Lsp
+            ];
+
+            inputsFrom = [
+              self.packages.${system}.test
+            ];
+          };
         }
       );
-      formatter = forEachSystem (system: pkgs: pkgs.nixfmt-rfc-style);
+      formatter = forEachSystem (
+        system: pkgs: idris2Packages:
+        pkgs.nixfmt-rfc-style
+      );
 
       checks = forEachSystem (
-        system: pkgs: {
+        system: pkgs: idris2Packages: {
           readme =
             let
               pg-idris = self.packages.${system}.default;
@@ -142,7 +159,7 @@
 
               nativeBuildInputs = [
                 pkgs.coreutils
-                idris2-packageset.packages.${system}.idris2
+                idris2Packages.idris2
               ];
 
               preBuild = ''

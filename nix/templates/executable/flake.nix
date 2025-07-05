@@ -15,11 +15,15 @@
     let
       inherit (nixpkgs) lib;
       forEachSystem =
-        f: lib.genAttrs lib.systems.flakeExposed (system: f system nixpkgs.legacyPackages.${system});
+        f:
+        lib.genAttrs lib.systems.flakeExposed (
+          system:
+          f system nixpkgs.legacyPackages.${system} idris2-packageset.packages.${system}.idris2Packages
+        );
     in
     {
       packages = forEachSystem (
-        system: pkgs:
+        system: pkgs: idris2Packages:
         let
           buildIdris = idris2-packageset.buildIdris.${system};
         in
@@ -28,7 +32,7 @@
             ipkgName = "my-project";
             # TODO: change this ^
             src = ./.;
-            idrisLibraries = [ idris2-packageset.idris2Packages.packdb.pg-idris ];
+            idrisLibraries = [ idris2Packages.packdb.pg-idris ];
             postInstall = ''
               # --- change binary name:
               wrapProgram $out/bin/my-prog \
@@ -39,10 +43,10 @@
         }
       );
       devShells = forEachSystem (
-        system: pkgs:
+        system: pkgs: idris2Packages:
         let
-          inherit (idris2-packageset.packages.${system}) idris2 idris2Lsp;
-          inherit (nixpkgs.legacyPackages.${system}) mkShell;
+          inherit (idris2Packages) idris2 idris2Lsp;
+          inherit (pkgs) mkShell;
         in
         {
           default = mkShell {
