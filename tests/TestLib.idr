@@ -37,10 +37,11 @@ getTestConfig = do
   where
     tryPartial : io Mode
     tryPartial = Prelude.do
-      ("--only" :: "compile_time" :: _) <- drop 2 <$> getArgs
-        | ("--only" :: "unit_tests" :: _) => pure UnitTests
-        | _ => pure $ Err "Missing TEST_DATABASE_URL environment variable needed for testing."
-      pure CompTime
+      args <- drop 2 <$> getArgs
+      case args of
+        ("--only" :: "compile_time" :: _) => pure CompTime
+        ("--only" :: "unit_tests"   :: _) => pure UnitTests
+        _ => pure $ Err "Missing TEST_DATABASE_URL environment variable needed for testing."
 
 export
 dbSetup : Database () Open (const Open)
