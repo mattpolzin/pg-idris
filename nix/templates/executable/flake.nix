@@ -28,18 +28,19 @@
           buildIdris = idris2-packageset.buildIdris.${system};
         in
         {
-          default = (buildIdris {
-            ipkgName = "my-project";
-            # TODO: change this ^
-            src = ./.;
-            idrisLibraries = [ idris2Packages.packdb.pg-idris ];
-            postInstall = ''
-              # --- change binary name:
-              wrapProgram $out/bin/my-prog \
-                --suffix LD_LIBRARY_PATH   : ${lib.makeLibraryPath [ pkgs.postgresql.lib ]} \
-                --suffix DYLD_LIBRARY_PATH : ${lib.makeLibraryPath [ pkgs.postgresql.lib ]}
-            '';
-          }).executable;
+          default =
+            (buildIdris {
+              ipkgName = "my-project";
+              # TODO: change this ^
+              src = ./.;
+              idrisLibraries = [ idris2Packages.packdb.pg-idris ];
+              postInstall = ''
+                # --- change binary name:
+                wrapProgram $out/bin/my-prog \
+                  --suffix LD_LIBRARY_PATH   : ${lib.makeLibraryPath [ pkgs.postgresql.lib ]} \
+                  --suffix DYLD_LIBRARY_PATH : ${lib.makeLibraryPath [ pkgs.postgresql.lib ]}
+              '';
+            }).executable;
         }
       );
       devShells = forEachSystem (
