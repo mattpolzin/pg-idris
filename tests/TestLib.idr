@@ -25,7 +25,7 @@ record Config where
   databaseUrl : String
 
 public export
-data Mode = Full Config | CompTime | Err String
+data Mode = Full Config | CompTime | UnitTests | Err String
 
 export
 getTestConfig : HasIO io => io Mode
@@ -38,6 +38,7 @@ getTestConfig = do
     tryPartial : io Mode
     tryPartial = Prelude.do
       ("--only" :: "compile_time" :: _) <- drop 2 <$> getArgs
+        | ("--only" :: "unit_tests" :: _) => pure UnitTests
         | _ => pure $ Err "Missing TEST_DATABASE_URL environment variable needed for testing."
       pure CompTime
 
@@ -56,13 +57,16 @@ getTestConfigIfNeeded (Just config) = pure $ Full config
 getTestConfigIfNeeded Nothing = getTestConfig
 
 export
-withTestDB : HasIO io => {default False setup : Bool} -> {default Nothing config: Maybe Config} -> (run : Database () Open (const Open)) -> io Bool
+withTestDB : HasIO io => {default False setup : Bool} 
+                      -> {default Nothing config: Maybe Config}
+                      -> (run : Database () Open (const Open))
+                      -> io Bool
 withTestDB {setup} {config} run = do
   Full config' <- getTestConfigIfNeeded config
-    | CompTime => do putStrLn "CompTime only config cannot be used to connect to a database"
-                     pure False
     | Err err => do putStrLn err
                     pure False
+    | _ => do putStrLn "Only a full test config can be used to connect to a database"
+              pure False
 
   let databaseUrl : String = if setup then config'.databaseUrl else testDatabaseUrl config'.databaseUrl
   Right () <- withDB databaseUrl run

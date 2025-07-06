@@ -147,12 +147,12 @@
                                   runHook postBuild
                 '';
               });
-          compTime =
+          compTimeTests =
             let
               test = lib.getExe self.packages.${system}.test;
             in
             pkgs.stdenvNoCC.mkDerivation {
-              pname = "compTime-check";
+              pname = "compTimeTest-check";
               version = self.packages.${system}.default;
 
               src = ./tests;
@@ -171,6 +171,36 @@
                 runHook preBuild
 
                 ${test} idris2 --only compile_time | tee $out
+
+                runHook postBuild
+              '';
+
+              dontInstall = true;
+            };
+          unitTests =
+            let
+              test = lib.getExe self.packages.${system}.test;
+            in
+            pkgs.stdenvNoCC.mkDerivation {
+              pname = "unitTest-check";
+              version = self.packages.${system}.default;
+
+              src = ./tests;
+
+              nativeBuildInputs = [
+                pkgs.coreutils
+                idris2Packages.idris2
+              ];
+
+              preBuild = ''
+                patchShebangs --build \
+                  check.sh run.sh
+              '';
+
+              buildPhase = ''
+                runHook preBuild
+
+                ${test} idris2 --only unit_tests | tee $out
 
                 runHook postBuild
               '';

@@ -24,6 +24,7 @@ main = do
   Full config <- getTestConfig
     | Err err => exitError err
     | CompTime => runner [ !compileTimeTests ]
+    | UnitTests => runner [ !unitTests ]
   True <- withTestDB {setup=True} {config=Just config} $ do
             liftIO' . putStrLn $ "Testing against " ++ config.databaseUrl
             dbSetup
