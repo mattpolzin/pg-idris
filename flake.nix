@@ -81,6 +81,27 @@
                   # runtime because each test builds and/or runs some Idris code.
               '';
             }).executable;
+
+          example =
+            (buildIdris {
+              ipkgName = "example";
+              src = builtins.path {
+                path = ./Example;
+                name = "pg-idris-example-src";
+              };
+              meta.mainProgram = "example";
+              buildInputs = [
+                pkgs.postgresql.lib
+              ];
+              idrisLibraries = [
+                self.packages.${system}.default
+              ];
+              postInstall = ''
+                wrapProgram $out/bin/example \
+                  --suffix LD_LIBRARY_PATH   : ${lib.makeLibraryPath [ pkgs.postgresql.lib ]} \
+                  --suffix DYLD_LIBRARY_PATH : ${lib.makeLibraryPath [ pkgs.postgresql.lib ]} \
+              '';
+            }).executable;
         }
       );
       devShells = forEachSystem (
@@ -119,6 +140,8 @@
 
       checks = forEachSystem (
         system: pkgs: idris2Packages: {
+          example = self.packages.${system}.example;
+
           readme =
             let
               pg-idris = self.packages.${system}.default;
