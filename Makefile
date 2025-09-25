@@ -118,6 +118,11 @@ install:
 	mkdir -p $(IDRIS_LIB_DIR)/${INDEXED_RELATIVE_DIR} && \
 	cp -R ./depends/${INDEXED_RELATIVE_DIR} $(IDRIS_LIB_DIR)/ && \
 	cp -R ./depends/elab-util*/ $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/ilex-core*/ $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/array*/ $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/ref1*/ $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/algebra*/ $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/bytestring*/ $(IDRIS_LIB_DIR)/ && \
 	cp -R ./depends/parser*/ $(IDRIS_LIB_DIR)/ && \
 	cp -R ./depends/parser-json*/ $(IDRIS_LIB_DIR)/
 	
@@ -126,6 +131,11 @@ install-with-src:
 	mkdir -p $(IDRIS_LIB_DIR)/${INDEXED_RELATIVE_DIR} && \
 	cp -R ./depends/${INDEXED_RELATIVE_DIR} $(IDRIS_LIB_DIR)/ && \
 	cp -R ./depends/elab-util*/ $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/ilex-core*/ $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/array*/ $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/ref1*/ $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/algebra*/ $(IDRIS_LIB_DIR)/ && \
+	cp -R ./depends/bytestring*/ $(IDRIS_LIB_DIR)/ && \
 	cp -R ./depends/parser*/ $(IDRIS_LIB_DIR)/ && \
 	cp -R ./depends/parser-json*/ $(IDRIS_LIB_DIR)/
 
@@ -139,5 +149,5 @@ test:
 	./build/exec/test $(IDRIS) $(INTERACTIVE)
 
 check-readme:
-	idris2 -p indexed -p elab-util -p parser -p parser-json -p pg-idris --check README.md
+	idris2 -p indexed -p elab-util -p parser -p parser-json -p pg-idris -p bytestring -p algebra -p ref1 -p array -p ilex-core -p linear --check README.md
 

@@ -1,5 +1,5 @@
 IDRIS := idris2
-LIBDIR = `${IDRIS} --librdir`
+LIBDIR = `$(IDRIS) --libdir`
 
 TARGET = example
 
