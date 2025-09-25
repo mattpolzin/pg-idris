@@ -164,6 +164,12 @@
                                     -p parser \
                                     -p parser-json \
                                     -p pg-idris \
+                                    -p bytestring \
+                                    -p algebra \
+                                    -p ref1 \
+                                    -p array \
+                                    -p ilex-core \
+                                    -p linear \
                                     --check ./README.md \
                                     | tee $out
 
