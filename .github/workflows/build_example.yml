@@ -15,7 +15,7 @@ jobs:
 
     steps:
       - name: Install Dependencies
-        run: apt-get update && apt-get -y install gcc git libpq-dev libpq5 libc6-dev
+        run: apt-get update && apt-get -y install binutils-gold git libpq-dev libpq5 libc6-dev
       - name: Checkout
         uses: actions/checkout@v5
       - name: Build pg-idris
