@@ -31,7 +31,7 @@ jobs:
 
     steps:
       - name: Install Dependencies
-        run: apt-get update && apt-get -y install gcc git libpq-dev libpq5 libc6-dev
+        run: apt-get update && apt-get -y install binutils-gold git libpq-dev libpq5 libc6-dev
       - name: Checkout
         uses: actions/checkout@v5
       - name: Build pg-idris
@@ -42,6 +42,12 @@ jobs:
           echo ''
           echo 'where is ld?'
           which ld
+          ls -l $(which ld)
+          which ld.gold
+          ls -l $(which ld.gold)
+          echo ''
+          echo 'where is gcc?'
+          which gcc
           echo ''
           echo ''
           make && make install
