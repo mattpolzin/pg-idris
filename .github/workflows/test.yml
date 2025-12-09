@@ -31,11 +31,20 @@ jobs:
 
     steps:
       - name: Install Dependencies
-        run: apt-get update && apt-get -y install git libpq-dev libpq5 libc6-dev
+        run: apt-get update && apt-get -y install gcc git libpq-dev libpq5 libc6-dev
       - name: Checkout
         uses: actions/checkout@v5
       - name: Build pg-idris
-        run: make && make install
+        run: |
+          echo ''
+          echo '$PATH:'
+          echo "$PATH"
+          echo ''
+          echo 'where is ld?'
+          which ld
+          echo ''
+          echo ''
+          make && make install
       - name: Test pg-idris
         run: |
           echo "LD_LIBRARY_PATH=$(idris2 --libdir)/pg-idris/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV && \
