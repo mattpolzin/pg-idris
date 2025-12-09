@@ -11,3 +11,4 @@ libpg-idris.so
 *.d
 *.o
 result
+harmony.json
