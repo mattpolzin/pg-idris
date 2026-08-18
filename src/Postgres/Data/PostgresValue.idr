@@ -4,6 +4,7 @@ import Data.Either
 import Data.String
 import Data.List
 import Data.List1
+import Data.String.Extra
 import Postgres.Data.PostgresType
 import JSON.Parser
 
@@ -156,10 +157,8 @@ PGCast POid Integer where
 parseArray : String -> Maybe (List String)
 parseArray str = 
   let stripped = trim str
-  in
-      do guard (("{" `isPrefixOf` stripped) && ("}" `isSuffixOf` stripped))
-         let middle = reverse . (drop 1) . reverse . (drop 1) $ unpack stripped
-         pure . forget $ pack <$> (splitOn ',' middle)
+  in do guard (("{" `isPrefixOf` stripped) && ("}" `isSuffixOf` stripped))
+        pure $ forget $ split ((==) ',') (shrink 1 str)
 
 export
 IdrCast from to => IdrCast (PArray from) (List to) where
