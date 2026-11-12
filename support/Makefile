@@ -32,12 +32,6 @@ else
 	SHLIB_SUFFIX := .so
 endif
 
-ifeq ($(findstring clang,$(CC_VERSION)),clang)
-  LDFLAGS += ''
-else
-  LDFLAGS += -fuse-ld=gold
-endif
-
 SRCS = $(wildcard c/*.c)
 OBJS = $(SRCS:.c=.o)
 DEPS = $(OBJS:.o=.d)
