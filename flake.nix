@@ -120,6 +120,11 @@
             inputsFrom = [
               self.packages.${system}.default
             ];
+
+            shellHook = ''
+            export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:${lib.makeLibraryPath [ pkgs.postgresql.lib ]}"
+            export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:${lib.makeLibraryPath [ pkgs.postgresql.lib ]}"
+            '';
           };
           tests = mkShell {
             packages = [
