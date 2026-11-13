@@ -7,5 +7,5 @@ executable = test
 main = Main
 
 depends = indexed >= 0.0.10
-        , pg-idris == 0.0.8
+        , pg-idris == 0.0.9
         , test >= 0.6.0

@@ -47,20 +47,11 @@ jobs:
           echo 'where is gcc?'
           which gcc
           echo ''
-          echo 'what libs are installed on system?'
-          ls $(pg_config --libdir)
-          echo ''
           echo ''
           make && make install
       - name: Test pg-idris
         run: |
-          pg_config --libdir
-          echo ''
-          readelf -d $(idris2 --libdir)/pg-idris-0.0.8/lib/libpg-idris.so
-          echo ''
-          ldd $(idris2 --libdir)/pg-idris-0.0.8/lib/libpg-idris.so
-          echo ''
-          echo "LD_LIBRARY_PATH=$(idris2 --libdir)/pg-idris-0.0.8/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV && \
+          echo "LD_LIBRARY_PATH=$(idris2 --libdir)/pg-idris-0.0.9/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV && \
           echo "LIB_PATH: $LD_LIBRARY_PATH" && \
           make test INTERACTIVE=''
       - name: Check README
