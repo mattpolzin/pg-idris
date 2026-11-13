@@ -7,8 +7,14 @@ TARGET_VERSION ?= 0.0.8
 INSTALLDIR = `${IDRIS} --libdir`/pg-idris-${TARGET_VERSION}
 LIBDIR = "${INSTALLDIR}/lib"
 
-LDFLAGS = -L$(shell pg_config --libdir) -lpq
 CPPFLAGS = -I$(shell pg_config --includedir)
+
+ifeq ($(findstring clang,$(CC_VERSION)),clang)
+ LDFLAGS += -L$(shell pg_config --libdir) -lpq
+else
+ CFLAGS += -fPIC
+ LDFLAGS = -L$(shell pg_config --libdir)-Wl,-rpath=$(shell pg_config --libdir) -Wl,--no-as-needed -lpq
+endif
 
 CC_VERSION = $(shell $(CC) --version)
 MACHINE := $(shell $(CC) -dumpmachine)
