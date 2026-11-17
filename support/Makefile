@@ -9,16 +9,15 @@ LIBDIR = "${INSTALLDIR}/lib"
 
 CPPFLAGS = -I$(shell pg_config --includedir)
 
-CC_VERSION ?= "$(shell $(CC) --version)"
+CC_VERSION = "$(shell $(CC) --version)"
 
 ifeq ($(findstring clang,$(CC_VERSION)),clang)
 	LDFLAGS += -L$(shell pg_config --libdir) -lpq
 else
 	CFLAGS += -fPIC
-	LDFLAGS = -L$(shell pg_config --libdir)-Wl,-rpath=$(shell pg_config --libdir) -Wl,--no-as-needed -lpq
+	LDFLAGS += -L$(shell pg_config --libdir)-Wl,-rpath=$(shell pg_config --libdir) -Wl,--no-as-needed -lpq
 endif
 
-CC_VERSION = $(shell $(CC) --version)
 MACHINE := $(shell $(CC) -dumpmachine)
 ifneq (,$(findstring cygwin, $(MACHINE)))
 	OS := windows
