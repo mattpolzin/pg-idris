@@ -1,0 +1,20 @@
+name: pg-idris nix build
+on: 
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Build pg-idris
+        run: |
+          nix build \
+            --accept-flake-config \
+            --trusted-public-keys 'gh-nix-idris2-packages.cachix.org-1:iOqSB5DrESFT+3A1iNzErgB68IDG8BrHLbLkhztOXfo= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY='
+
