@@ -13,6 +13,8 @@ CC_VERSION = "$(shell $(CC) --version)"
 
 ifeq ($(findstring clang,$(CC_VERSION)),clang)
 	LDFLAGS += -L$(shell pg_config --libdir) -lpq
+else ifeq ($(findstring clang,$(CC)),clang)
+	LDFLAGS += -L$(shell pg_config --libdir) -lpq
 else
 	CFLAGS += -fPIC
 	LDFLAGS += -L$(shell pg_config --libdir)-Wl,-rpath=$(shell pg_config --libdir) -Wl,--no-as-needed -lpq
